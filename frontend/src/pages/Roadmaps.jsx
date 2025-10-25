@@ -64,11 +64,51 @@ const Roadmaps = () => {
     const handleCreateRoadmap = async (e) => {
         e.preventDefault();
         try {
+            // Validate required fields
+            if (!newRoadmap.title.trim()) {
+                alert('Title is required');
+                return;
+            }
+            if (!newRoadmap.category.trim()) {
+                alert('Category is required');
+                return;
+            }
+
+            // Check if at least one milestone with title exists
+            const validMilestones = newRoadmap.milestones.filter(m => m.title.trim());
+            if (validMilestones.length === 0) {
+                alert('At least one milestone with a title is required');
+                return;
+            }
+
+            // Build the roadmap data with proper structure
             const roadmapData = {
-                ...newRoadmap,
-                tags: newRoadmap.tags.split(',').map(t => t.trim()).filter(t => t)
+                title: newRoadmap.title.trim(),
+                description: newRoadmap.description.trim(),
+                category: newRoadmap.category,
+                difficulty: newRoadmap.difficulty,
+                estimatedDuration: newRoadmap.estimatedDuration.trim(),
+                tags: newRoadmap.tags
+                    .split(',')
+                    .map(t => t.trim())
+                    .filter(t => t),
+                milestones: validMilestones.map((milestone, index) => ({
+                    title: milestone.title.trim(),
+                    description: milestone.description?.trim() || '',
+                    order: index + 1,
+                    tasks: (milestone.tasks || [])
+                        .filter(t => t.title.trim()) // Only include tasks with titles
+                        .map(task => ({
+                            title: task.title.trim(),
+                            description: task.description?.trim() || '',
+                            resources: [],
+                            completed: false
+                        })) || [],
+                    completed: false
+                }))
             };
-            await roadmapAPI.createRoadmap(roadmapData);
+
+            const response = await roadmapAPI.createRoadmap(roadmapData);
             alert('Roadmap created successfully!');
             setCreateDialogOpen(false);
             fetchRoadmaps();
@@ -82,7 +122,9 @@ const Roadmaps = () => {
                 milestones: [{ title: '', description: '', tasks: [{ title: '', description: '' }] }]
             });
         } catch (error) {
-            alert('Failed to create roadmap');
+            console.error('Failed to create roadmap:', error);
+            const errorMsg = error.response?.data?.message || error.response?.data?.details?.[0] || 'Failed to create roadmap';
+            alert(errorMsg);
         }
     };
 
@@ -280,6 +322,134 @@ const Roadmaps = () => {
                                         onChange={(e) => setNewRoadmap({ ...newRoadmap, tags: e.target.value })}
                                     />
                                 </div>
+
+                                {/* Milestones Section */}
+                                <div className="border-t pt-4">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <Label>Milestones</Label>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                                const updatedMilestones = [...newRoadmap.milestones, { title: '', description: '', tasks: [{ title: '', description: '' }] }];
+                                                setNewRoadmap({ ...newRoadmap, milestones: updatedMilestones });
+                                            }}
+                                        >
+                                            <Plus className="w-3 h-3 mr-1" />
+                                            Add Milestone
+                                        </Button>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        {newRoadmap.milestones.map((milestone, mIndex) => (
+                                            <div key={mIndex} className="border rounded-lg p-3 bg-gray-50">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h4 className="font-semibold text-sm">Milestone {mIndex + 1}</h4>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            const updatedMilestones = newRoadmap.milestones.filter((_, i) => i !== mIndex);
+                                                            setNewRoadmap({ ...newRoadmap, milestones: updatedMilestones });
+                                                        }}
+                                                        className="text-red-500 hover:text-red-700"
+                                                    >
+                                                        Remove
+                                                    </Button>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Input
+                                                        placeholder="Milestone title (required)"
+                                                        value={milestone.title}
+                                                        onChange={(e) => {
+                                                            const updatedMilestones = [...newRoadmap.milestones];
+                                                            updatedMilestones[mIndex].title = e.target.value;
+                                                            setNewRoadmap({ ...newRoadmap, milestones: updatedMilestones });
+                                                        }}
+                                                        className="text-sm"
+                                                    />
+                                                    <Input
+                                                        placeholder="Milestone description"
+                                                        value={milestone.description}
+                                                        onChange={(e) => {
+                                                            const updatedMilestones = [...newRoadmap.milestones];
+                                                            updatedMilestones[mIndex].description = e.target.value;
+                                                            setNewRoadmap({ ...newRoadmap, milestones: updatedMilestones });
+                                                        }}
+                                                        className="text-sm"
+                                                    />
+
+                                                    {/* Tasks Section */}
+                                                    <div className="mt-3 ml-2">
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <Label className="text-xs">Tasks</Label>
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    const updatedMilestones = [...newRoadmap.milestones];
+                                                                    updatedMilestones[mIndex].tasks.push({ title: '', description: '' });
+                                                                    setNewRoadmap({ ...newRoadmap, milestones: updatedMilestones });
+                                                                }}
+                                                                className="text-xs"
+                                                            >
+                                                                <Plus className="w-2 h-2 mr-1" />
+                                                                Add Task
+                                                            </Button>
+                                                        </div>
+
+                                                        <div className="space-y-2 bg-white rounded p-2">
+                                                            {milestone.tasks && milestone.tasks.map((task, tIndex) => (
+                                                                <div key={tIndex} className="flex gap-2 items-start">
+                                                                    <div className="flex-1 space-y-1">
+                                                                        <Input
+                                                                            placeholder="Task title"
+                                                                            value={task.title}
+                                                                            onChange={(e) => {
+                                                                                const updatedMilestones = [...newRoadmap.milestones];
+                                                                                updatedMilestones[mIndex].tasks[tIndex].title = e.target.value;
+                                                                                setNewRoadmap({ ...newRoadmap, milestones: updatedMilestones });
+                                                                            }}
+                                                                            className="text-xs h-8"
+                                                                        />
+                                                                        <Input
+                                                                            placeholder="Task description"
+                                                                            value={task.description}
+                                                                            onChange={(e) => {
+                                                                                const updatedMilestones = [...newRoadmap.milestones];
+                                                                                updatedMilestones[mIndex].tasks[tIndex].description = e.target.value;
+                                                                                setNewRoadmap({ ...newRoadmap, milestones: updatedMilestones });
+                                                                            }}
+                                                                            className="text-xs h-8"
+                                                                        />
+                                                                    </div>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => {
+                                                                            const updatedMilestones = [...newRoadmap.milestones];
+                                                                            updatedMilestones[mIndex].tasks = updatedMilestones[mIndex].tasks.filter((_, i) => i !== tIndex);
+                                                                            setNewRoadmap({ ...newRoadmap, milestones: updatedMilestones });
+                                                                        }}
+                                                                        className="text-red-500 hover:text-red-700 h-8 px-2"
+                                                                    >
+                                                                        ✕
+                                                                    </Button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 <DialogFooter>
                                     <Button type="submit" className="bg-gradient-to-r from-purple-600 to-pink-600">
                                         Create Roadmap

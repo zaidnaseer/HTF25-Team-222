@@ -92,7 +92,6 @@ router.get('/my/all', protect, async (req, res) => {
 router.post('/', protect, async (req, res) => {
     try {
         const { isTrainerRoadmap, ...roadmapData } = req.body;
-
         const roadmap = await Roadmap.create({
             ...roadmapData,
             createdBy: req.user._id,
@@ -103,6 +102,7 @@ router.post('/', protect, async (req, res) => {
         res.status(201).json(roadmap);
     } catch (error) {
         res.status(500).json({ message: error.message });
+        console.log(error)
     }
 });
 
