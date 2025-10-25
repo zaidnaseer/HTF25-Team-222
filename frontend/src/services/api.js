@@ -75,8 +75,14 @@ export const ratingAPI = {
 // Roadmap API
 export const roadmapAPI = {
     getRoadmaps: (params) => api.get('/roadmaps', { params }),
+    getApprovedRoadmaps: () => api.get('/roadmaps/approved/all'),
+    getTrainerRoadmaps: (trainerId) => api.get(`/roadmaps/trainer/${trainerId}`),
+    getMyRoadmaps: () => api.get('/roadmaps/my/all'),
     getRoadmap: (id) => api.get(`/roadmaps/${id}`),
     createRoadmap: (data) => api.post('/roadmaps', data),
+    updateRoadmap: (id, data) => api.put(`/roadmaps/${id}`, data),
+    deleteRoadmap: (id) => api.delete(`/roadmaps/${id}`),
+    adoptRoadmap: (id, data) => api.post(`/roadmaps/${id}/adopt`, data),
     updateProgress: (id, data) => api.put(`/roadmaps/${id}/progress`, data),
 };
 

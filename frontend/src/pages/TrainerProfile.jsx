@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { trainerAPI, sessionAPI, ratingAPI } from '../services/api';
+import { useParams, useNavigate } from 'react-router-dom';
+import { trainerAPI, sessionAPI, ratingAPI, roadmapAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -9,14 +9,16 @@ import { Label } from '../components/ui/label';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
-import { Star, DollarSign, Calendar, Users, Award } from 'lucide-react';
+import { Star, DollarSign, Calendar, Users, Award, BookOpen, Target, Clock } from 'lucide-react';
 import { getInitials } from '../lib/utils';
 
 export default function TrainerProfile() {
     const { id } = useParams();
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [trainer, setTrainer] = useState(null);
     const [ratings, setRatings] = useState([]);
+    const [roadmaps, setRoadmaps] = useState([]);
     const [showBookDialog, setShowBookDialog] = useState(false);
     const [bookingData, setBookingData] = useState({
         title: '',
@@ -28,6 +30,7 @@ export default function TrainerProfile() {
 
     useEffect(() => {
         loadTrainerProfile();
+        loadTrainerRoadmaps();
     }, [id]);
 
     const loadTrainerProfile = async () => {
@@ -37,6 +40,15 @@ export default function TrainerProfile() {
             setRatings(response.data.ratings);
         } catch (error) {
             console.error('Failed to load trainer:', error);
+        }
+    };
+
+    const loadTrainerRoadmaps = async () => {
+        try {
+            const response = await roadmapAPI.getTrainerRoadmaps(id);
+            setRoadmaps(response.data);
+        } catch (error) {
+            console.error('Failed to load trainer roadmaps:', error);
         }
     };
 
@@ -171,6 +183,88 @@ export default function TrainerProfile() {
                                             <div className="flex justify-between items-center">
                                                 <span className="text-sm text-muted-foreground">{program.duration}</span>
                                                 <span className="text-lg font-bold text-primary">${program.price}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {roadmaps.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <BookOpen className="w-5 h-5" />
+                                    Learning Roadmaps
+                                </CardTitle>
+                                <CardDescription>Structured learning paths offered by this trainer</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    {roadmaps.map((roadmap) => (
+                                        <div
+                                            key={roadmap._id}
+                                            className="p-4 border rounded-lg hover:shadow-md transition-shadow cursor-pointer"
+                                            onClick={() => navigate(`/roadmaps/${roadmap._id}`)}
+                                        >
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h4 className="font-semibold text-lg">{roadmap.title}</h4>
+                                                <Badge variant="outline">Trainer Roadmap</Badge>
+                                            </div>
+                                            <p className="text-muted-foreground text-sm mb-3">{roadmap.description}</p>
+
+                                            <div className="flex flex-wrap gap-2 mb-3">
+                                                <Badge variant="outline">{roadmap.category}</Badge>
+                                                <Badge>{roadmap.difficulty}</Badge>
+                                                {roadmap.estimatedDuration && (
+                                                    <Badge variant="outline">
+                                                        <Clock className="w-3 h-3 mr-1" />
+                                                        {roadmap.estimatedDuration}
+                                                    </Badge>
+                                                )}
+                                            </div>
+
+                                            {roadmap.schedule && (
+                                                <div className="bg-purple-50 p-3 rounded-md mb-3 text-sm">
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        {roadmap.schedule.startDate && (
+                                                            <div>
+                                                                <span className="text-muted-foreground">Starts: </span>
+                                                                <span className="font-medium">
+                                                                    {new Date(roadmap.schedule.startDate).toLocaleDateString()}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        {roadmap.schedule.sessionsPerWeek && (
+                                                            <div>
+                                                                <span className="text-muted-foreground">Sessions: </span>
+                                                                <span className="font-medium">
+                                                                    {roadmap.schedule.sessionsPerWeek}/week
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        {roadmap.schedule.price && (
+                                                            <div className="col-span-2">
+                                                                <span className="text-muted-foreground">Price: </span>
+                                                                <span className="font-bold text-primary">
+                                                                    ${roadmap.schedule.price}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                                <span className="flex items-center gap-1">
+                                                    <Target className="w-4 h-4" />
+                                                    {roadmap.milestones?.length || 0} milestones
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    <Users className="w-4 h-4" />
+                                                    {roadmap.usedBy || 0} adopted
+                                                </span>
                                             </div>
                                         </div>
                                     ))}
