@@ -55,7 +55,6 @@ const learnerHubSchema = new mongoose.Schema({
             default: Date.now
         }
     }],
-    // Gamification settings
     gamificationEnabled: {
         type: Boolean,
         default: true
@@ -70,17 +69,14 @@ const learnerHubSchema = new mongoose.Schema({
             default: 0
         }
     }],
-    // Roadmap
     roadmap: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Roadmap'
     },
-    // Activities and events
     upcomingEvents: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Activity'
     }],
-    // Industry connection
     industryMentors: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
@@ -101,7 +97,6 @@ const learnerHubSchema = new mongoose.Schema({
             default: Date.now
         }
     }],
-    // Stats
     totalMembers: {
         type: Number,
         default: 0
@@ -114,7 +109,7 @@ const learnerHubSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Update total members before saving
+// ✅ Auto-update totalMembers
 learnerHubSchema.pre('save', function (next) {
     this.totalMembers = this.members.length;
     next();
