@@ -3,6 +3,12 @@ import axios from 'axios';
 
 // Determine API URL based on environment variable or default to localhost
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const BASE_URL = API_URL.replace('/api', ''); // Remove /api for resource URLs
+
+export const getResourceUrl = (path) => {
+    if (path.startsWith('http')) return path;
+    return `${BASE_URL}${path}`;
+};
 
 // Create an Axios instance with base configuration
 const api = axios.create({
@@ -44,14 +50,23 @@ export const userAPI = {
 
 // --- Learner Hub API Functions ---
 export const learnerHubAPI = {
-    getHubs: (params) => api.get('/learner-hubs', { params }),
-    getHub: (id) => api.get(`/learner-hubs/${id}`),
-    createHub: (data) => api.post('/learner-hubs', data),
-    joinHub: (id, data) => api.post(`/learner-hubs/${id}/join`, data),
-    leaveHub: (id, data) => api.delete(`/learner-hubs/${id}/leave`, { data }),
-    approveRequest: (hubId, userId) => api.post(`/learner-hubs/${hubId}/approve/${userId}`),
-    addResource: (hubId, data) => api.post(`/learner-hubs/${hubId}/resources`, data),
-    getHubMembers: (id) => api.get(`/learner-hubs/${id}/members`),
+    getHubs: (params) => api.get('/hubs', { params }),
+    getHub: (id) => api.get(`/hubs/${id}`),
+    createHub: (data) => api.post('/hubs', data),
+    joinHub: (id, data) => api.post(`/hubs/${id}/join`, data),
+    // Note: The origin/main version of leaveHub includes 'data', which might be needed
+    leaveHub: (id, data) => api.delete(`/hubs/${id}/leave`, { data }),
+    approveRequest: (hubId, userId) => api.post(`/hubs/${hubId}/approve/${userId}`),
+    rejectRequest: (hubId, userId) => api.post(`/hubs/${hubId}/reject/${userId}`),
+    addResource: (hubId, formData) => api.post(`/hubs/${hubId}/resources`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    }),
+    getResources: (hubId) => api.get(`/hubs/${hubId}/resources`),
+    deleteResource: (hubId, resourceId) => api.delete(`/hubs/${hubId}/resources/${resourceId}`),
+    // Added from HEAD (develop branch) as it was missing in origin/main
+    getHubMembers: (id) => api.get(`/hubs/${id}/members`),
 };
 
 // --- Trainer API Functions ---

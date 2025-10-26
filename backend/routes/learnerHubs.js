@@ -6,10 +6,11 @@ import User from '../models/User.js';
 import Activity from '../models/Activity.js';
 import Message from '../models/Message.js';
 import { protect } from '../middleware/auth.js';
+import upload from '../config/fileUpload.js';
 
 const router = express.Router();
 
-// @route    GET /api/learner-hubs
+// @route    GET /api/hubs
 // @desc     Get all learner hubs (with filters)
 // @access   Public
 router.get('/', async (req, res) => {
@@ -37,7 +38,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// @route    POST /api/learner-hubs
+// @route    POST /api/hubs
 // @desc     Create a new learner hub
 // @access   Private
 router.post('/', protect, async (req, res) => {
@@ -62,7 +63,7 @@ router.post('/', protect, async (req, res) => {
     }
 });
 
-// @route    GET /api/learner-hubs/:id
+// @route    GET /api/hubs/:id
 // @desc     Get single learner hub
 // @access   Public
 router.get('/:id', async (req, res) => {
@@ -70,6 +71,7 @@ router.get('/:id', async (req, res) => {
         const hub = await LearnerHub.findById(req.params.id)
             .populate('creator', 'name avatar')
             .populate('members.user', 'name avatar points level')
+            .populate('pendingRequests.user', 'name avatar email')
             .populate('roadmap')
             .populate('industryMentors', 'name avatar bio');
 
@@ -83,7 +85,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// @route    POST /api/learner-hubs/:id/join
+// @route    POST /api/hubs/:id/join
 // @desc     Join a learner hub
 // @access   Private
 router.post('/:id/join', protect, async (req, res) => {
@@ -132,7 +134,7 @@ router.post('/:id/join', protect, async (req, res) => {
     }
 });
 
-// @route    POST /api/learner-hubs/:id/approve/:userId
+// @route    POST /api/hubs/:id/approve/:userId
 // @desc     Approve join request
 // @access   Private (Admin/Moderator)
 router.post('/:id/approve/:userId', protect, async (req, res) => {
@@ -166,9 +168,38 @@ router.post('/:id/approve/:userId', protect, async (req, res) => {
     }
 });
 
-// @route    DELETE /api/learner-hubs/:id/leave
-// @desc     Leave a learner hub
-// @access   Private
+// @route   POST /api/hubs/:id/reject/:userId
+// @desc    Reject join request
+// @access  Private (Admin/Moderator)
+router.post('/:id/reject/:userId', protect, async (req, res) => {
+    try {
+        const hub = await LearnerHub.findById(req.params.id);
+
+        if (!hub) {
+            return res.status(404).json({ message: 'Hub not found' });
+        }
+
+        // Check if user is admin or moderator
+        const member = hub.members.find(m => m.user.toString() === req.user._id.toString());
+        if (!member || (member.role !== 'admin' && member.role !== 'moderator')) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        // Remove from pending requests
+        hub.pendingRequests = hub.pendingRequests.filter(
+            r => r.user.toString() !== req.params.userId
+        );
+        await hub.save();
+
+        res.json({ message: 'Request rejected' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// @route   DELETE /api/hubs/:id/leave
+// @desc    Leave a learner hub
+// @access  Private
 router.delete('/:id/leave', protect, async (req, res) => {
     try {
         const hub = await LearnerHub.findById(req.params.id);
@@ -272,10 +303,79 @@ router.delete('/:id/leave', protect, async (req, res) => {
     }
 });
 
-// @route    POST /api/learner-hubs/:id/resources
-// @desc     Add resource to hub
-// @access   Private (Members only)
-router.post('/:id/resources', protect, async (req, res) => {
+// @route   GET /api/hubs/:id/resources
+// @desc    Get all resources for a hub
+// @access  Private (Members only)
+router.get('/:id/resources', protect, async (req, res) => {
+    try {
+        console.log("hello")
+        const hub = await LearnerHub.findById(req.params.id)
+            .populate('resources.uploadedBy', 'name avatar');
+
+        if (!hub) {
+            return res.status(404).json({ message: 'Hub not found' });
+        }
+
+        // Check if user is a member
+        const member = hub.members.find(m => m.user.toString() === req.user._id.toString());
+        if (!member) {
+            return res.status(403).json({ message: 'You must be a member to view resources' });
+        }
+
+        res.json(hub.resources);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// @route   POST /api/learner-hubs/:id/resources
+// @desc    Add resource to hub
+// @access  Private (Members only)
+router.post('/:id/resources', protect, upload.single('file'), async (req, res) => {
+    try {
+        console.log('POST /resources - Headers:', req.headers);
+        console.log('POST /resources - Body:', req.body);
+        console.log('POST /resources - File:', req.file);
+
+        const hub = await LearnerHub.findById(req.params.id);
+
+        if (!hub) {
+            return res.status(404).json({ message: 'Hub not found' });
+        }
+
+        // Check if user is a member
+        const member = hub.members.find(m => m.user.toString() === req.user._id.toString());
+        if (!member) {
+            return res.status(403).json({ message: 'Only members can add resources' });
+        }
+
+        // Handle file upload
+        if (!req.file) {
+            console.error('No file in request');
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        const resourceData = {
+            title: req.body.title,
+            type: req.file.mimetype === 'application/pdf' ? 'document' : 'text',
+            url: `/uploads/${req.file.filename}`,
+            filename: req.file.filename,
+            mimeType: req.file.mimetype,
+            uploadedBy: req.user._id,
+            uploadedAt: new Date()
+        }; hub.resources.push(resourceData);
+        await hub.save();
+
+        res.json(hub.resources[hub.resources.length - 1]);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// @route   DELETE /api/learner-hubs/:id/resources/:resourceId
+// @desc    Delete a resource
+// @access  Private (Admin only)
+router.delete('/:id/resources/:resourceId', protect, async (req, res) => {
     try {
         const hub = await LearnerHub.findById(req.params.id);
 
@@ -283,18 +383,16 @@ router.post('/:id/resources', protect, async (req, res) => {
             return res.status(404).json({ message: 'Hub not found' });
         }
 
-        const isMember = hub.members.some(m => m.user.toString() === req.user._id.toString());
-        if (!isMember) {
-            return res.status(403).json({ message: 'Not a member' });
+        // Check if user is admin
+        const member = hub.members.find(m => m.user.toString() === req.user._id.toString());
+        if (!member || member.role !== 'admin') {
+            return res.status(403).json({ message: 'Only admins can delete resources' });
         }
 
-        hub.resources.push({
-            ...req.body,
-            uploadedBy: req.user._id
-        });
-
+        hub.resources = hub.resources.filter(r => r._id.toString() !== req.params.resourceId);
         await hub.save();
-        res.json(hub);
+
+        res.json({ message: 'Resource deleted' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
