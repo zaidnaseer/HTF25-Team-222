@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import Activity from '../models/Activity.js';
 import Message from '../models/Message.js';
 import { protect } from '../middleware/auth.js';
+import upload from '../config/fileUpload.js';
 
 const router = express.Router();
 
@@ -301,8 +302,8 @@ router.delete('/:id/leave', protect, async (req, res) => {
 
 // @route   POST /api/learner-hubs/:id/resources
 // @desc    Add resource to hub
-// @access  Private (Members only)
-router.post('/:id/resources', protect, async (req, res) => {
+// @access  Private (Admin only)
+router.post('/:id/resources', protect, upload.single('file'), async (req, res) => {
     try {
         const hub = await LearnerHub.findById(req.params.id);
 
@@ -310,18 +311,55 @@ router.post('/:id/resources', protect, async (req, res) => {
             return res.status(404).json({ message: 'Hub not found' });
         }
 
-        const isMember = hub.members.some(m => m.user.toString() === req.user._id.toString());
-        if (!isMember) {
-            return res.status(403).json({ message: 'Not a member' });
+        // Check if user is admin
+        const member = hub.members.find(m => m.user.toString() === req.user._id.toString());
+        if (!member || member.role !== 'admin') {
+            return res.status(403).json({ message: 'Only admins can add resources' });
         }
 
-        hub.resources.push({
-            ...req.body,
-            uploadedBy: req.user._id
-        });
+        // Handle file upload
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
 
+            const resourceData = {
+                title: req.body.title,
+                type: req.file.mimetype === 'application/pdf' ? 'document' : 'text',
+                url: `/uploads/${req.file.filename}`,
+                filename: req.file.filename,
+                mimeType: req.file.mimetype,
+                uploadedBy: req.user._id,
+                uploadedAt: new Date()
+            };        hub.resources.push(resourceData);
         await hub.save();
-        res.json(hub);
+
+        res.json(hub.resources[hub.resources.length - 1]);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// @route   DELETE /api/learner-hubs/:id/resources/:resourceId
+// @desc    Delete a resource
+// @access  Private (Admin only)
+router.delete('/:id/resources/:resourceId', protect, async (req, res) => {
+    try {
+        const hub = await LearnerHub.findById(req.params.id);
+
+        if (!hub) {
+            return res.status(404).json({ message: 'Hub not found' });
+        }
+
+        // Check if user is admin
+        const member = hub.members.find(m => m.user.toString() === req.user._id.toString());
+        if (!member || member.role !== 'admin') {
+            return res.status(403).json({ message: 'Only admins can delete resources' });
+        }
+
+        hub.resources = hub.resources.filter(r => r._id.toString() !== req.params.resourceId);
+        await hub.save();
+
+        res.json({ message: 'Resource deleted' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

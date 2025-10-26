@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { learnerHubAPI, messageAPI, activityAPI } from '../services/api';
+import { learnerHubAPI, messageAPI, activityAPI, getResourceUrl } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -33,6 +33,11 @@ export default function HubDetail() {
     const [ownerLeaveAction, setOwnerLeaveAction] = useState('transfer'); // 'transfer' or 'delete'
     const [selectedNewOwner, setSelectedNewOwner] = useState('');
     const [showConfirmRandomOwner, setShowConfirmRandomOwner] = useState(false);
+    const [showUploadDialog, setShowUploadDialog] = useState(false);
+    const [resourceForm, setResourceForm] = useState({
+        title: '',
+        file: null
+    });
     const [activityForm, setActivityForm] = useState({
         title: '',
         description: '',
@@ -168,6 +173,65 @@ export default function HubDetail() {
     const getEligibleMembers = () => {
         if (!hub) return [];
         return hub.members.filter(m => m.user._id !== user._id);
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            // Check file type
+            if (!file.type.match('application/pdf|text/plain')) {
+                alert('Only PDF and text files are allowed');
+                e.target.value = '';
+                return;
+            }
+            // Check file size (5MB limit)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size must be less than 5MB');
+                e.target.value = '';
+                return;
+            }
+            setResourceForm(prev => ({ ...prev, file }));
+        }
+    };
+
+    const handleResourceUpload = async (e) => {
+        e.preventDefault();
+        try {
+            const formData = new FormData();
+            formData.append('title', resourceForm.title);
+            formData.append('file', resourceForm.file);
+
+            await learnerHubAPI.addResource(id, formData);
+            
+            setResourceForm({ title: '', file: null });
+            setShowUploadDialog(false);
+            await loadHub();
+        } catch (error) {
+            console.error('Failed to upload resource:', error);
+            alert('Failed to upload resource. Please try again.');
+        }
+    };
+
+    const handleDeleteResource = async (resourceId) => {
+        if (!confirm('Are you sure you want to delete this resource?')) return;
+
+        try {
+            const response = await fetch(`/api/learner-hubs/${id}/resources/${resourceId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete resource');
+            }
+
+            loadHub();
+        } catch (error) {
+            console.error('Failed to delete resource:', error);
+            alert('Failed to delete resource. Please try again.');
+        }
     };
 
     const handleSendMessage = async (e) => {
@@ -865,26 +929,103 @@ export default function HubDetail() {
                 </TabsContent>
 
                 <TabsContent value="resources">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Learning Resources</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-3">
-                                {hub.resources && hub.resources.length > 0 ? hub.resources.map((resource, index) => (
-                                    <div key={index} className="flex items-center justify-between p-3 rounded-lg border">
-                                        <div>
-                                            <p className="font-medium">{resource.title}</p>
-                                            <p className="text-sm text-muted-foreground">{resource.type}</p>
+                    <div className="space-y-4">
+                        {isAdmin && (
+                            <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+                                <DialogTrigger asChild>
+                                    <Button className="w-full sm:w-auto">
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        Add Resource
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Add Learning Resource</DialogTitle>
+                                        <DialogDescription>
+                                            Upload PDF documents or text files as learning resources for the hub members.
+                                        </DialogDescription>
+                                    </DialogHeader>
+
+                                    <form onSubmit={handleResourceUpload} className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="title">Resource Title</Label>
+                                            <Input
+                                                id="title"
+                                                required
+                                                value={resourceForm.title}
+                                                onChange={(e) => setResourceForm({ ...resourceForm, title: e.target.value })}
+                                                placeholder="e.g., Introduction to React"
+                                            />
                                         </div>
-                                        <Button variant="outline" size="sm">View</Button>
-                                    </div>
-                                )) : (
-                                    <p className="text-center text-muted-foreground py-8">No resources yet</p>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="file">File (PDF or Text only)</Label>
+                                            <Input
+                                                id="file"
+                                                type="file"
+                                                required
+                                                accept=".pdf,.txt"
+                                                onChange={handleFileChange}
+                                            />
+                                            <p className="text-xs text-muted-foreground">Maximum file size: 5MB</p>
+                                        </div>
+
+                                        <div className="flex justify-end gap-2">
+                                            <Button type="button" variant="outline" onClick={() => setShowUploadDialog(false)}>
+                                                Cancel
+                                            </Button>
+                                            <Button type="submit" disabled={!resourceForm.file}>
+                                                Upload Resource
+                                            </Button>
+                                        </div>
+                                    </form>
+                                </DialogContent>
+                            </Dialog>
+                        )}
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Learning Resources</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-3">
+                                    {hub.resources && hub.resources.length > 0 ? hub.resources.map((resource) => (
+                                        <div key={resource._id} className="flex items-center justify-between p-3 rounded-lg border">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-medium">{resource.title}</p>
+                                                    <Badge variant="outline">{resource.type === 'document' ? 'PDF' : 'Text'}</Badge>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground">
+                                                    Added by {resource.uploadedBy?.name} on {formatDate(resource.uploadedAt)}
+                                                </p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm" 
+                                                    onClick={() => window.open(getResourceUrl(resource.url), '_blank', 'noopener,noreferrer')}
+                                                >
+                                                    {resource.type === 'document' ? 'Open PDF' : 'View Text'}
+                                                </Button>
+                                                {isAdmin && (
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm"
+                                                        onClick={() => handleDeleteResource(resource._id)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )) : (
+                                        <p className="text-center text-muted-foreground py-8">No resources yet</p>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </TabsContent>
             </Tabs>
         </div>

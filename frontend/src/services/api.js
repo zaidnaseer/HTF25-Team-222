@@ -1,6 +1,12 @@
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const BASE_URL = API_URL.replace('/api', ''); // Remove /api for resource URLs
+
+export const getResourceUrl = (path) => {
+    if (path.startsWith('http')) return path;
+    return `${BASE_URL}${path}`;
+};
 
 const api = axios.create({
     baseURL: API_URL,
@@ -46,7 +52,11 @@ export const learnerHubAPI = {
     leaveHub: (id, data) => api.delete(`/learner-hubs/${id}/leave`, { data }),
     approveRequest: (hubId, userId) => api.post(`/learner-hubs/${hubId}/approve/${userId}`),
     rejectRequest: (hubId, userId) => api.post(`/learner-hubs/${hubId}/reject/${userId}`),
-    addResource: (hubId, data) => api.post(`/learner-hubs/${hubId}/resources`, data),
+    addResource: (hubId, formData) => api.post(`/learner-hubs/${hubId}/resources`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    }),
 };
 
 // Trainer API
