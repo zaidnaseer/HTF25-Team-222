@@ -9,7 +9,7 @@ import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// @route    GET /api/learner-hubs
+// @route    GET /api/hubs
 // @desc     Get all learner hubs (with filters)
 // @access   Public
 router.get('/', async (req, res) => {
@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// @route    POST /api/learner-hubs
+// @route    POST /api/hubs
 // @desc     Create a new learner hub
 // @access   Private
 router.post('/', protect, async (req, res) => {
@@ -62,7 +62,7 @@ router.post('/', protect, async (req, res) => {
     }
 });
 
-// @route    GET /api/learner-hubs/:id
+// @route    GET /api/hubs/:id
 // @desc     Get single learner hub
 // @access   Public
 router.get('/:id', async (req, res) => {
@@ -84,7 +84,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// @route    POST /api/learner-hubs/:id/join
+// @route    POST /api/hubs/:id/join
 // @desc     Join a learner hub
 // @access   Private
 router.post('/:id/join', protect, async (req, res) => {
@@ -133,7 +133,7 @@ router.post('/:id/join', protect, async (req, res) => {
     }
 });
 
-// @route    POST /api/learner-hubs/:id/approve/:userId
+// @route    POST /api/hubs/:id/approve/:userId
 // @desc     Approve join request
 // @access   Private (Admin/Moderator)
 router.post('/:id/approve/:userId', protect, async (req, res) => {
@@ -167,7 +167,7 @@ router.post('/:id/approve/:userId', protect, async (req, res) => {
     }
 });
 
-// @route   POST /api/learner-hubs/:id/reject/:userId
+// @route   POST /api/hubs/:id/reject/:userId
 // @desc    Reject join request
 // @access  Private (Admin/Moderator)
 router.post('/:id/reject/:userId', protect, async (req, res) => {
@@ -196,7 +196,7 @@ router.post('/:id/reject/:userId', protect, async (req, res) => {
     }
 });
 
-// @route   DELETE /api/learner-hubs/:id/leave
+// @route   DELETE /api/hubs/:id/leave
 // @desc    Leave a learner hub
 // @access  Private
 router.delete('/:id/leave', protect, async (req, res) => {
@@ -302,7 +302,7 @@ router.delete('/:id/leave', protect, async (req, res) => {
     }
 });
 
-// @route    POST /api/learner-hubs/:id/resources
+// @route    POST /api/hubs/:id/resources
 // @desc     Add resource to hub
 // @access   Private (Members only)
 router.post('/:id/resources', protect, async (req, res) => {

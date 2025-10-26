@@ -44,17 +44,17 @@ export const userAPI = {
 
 // --- Learner Hub API Functions ---
 export const learnerHubAPI = {
-    getHubs: (params) => api.get('/learner-hubs', { params }),
-    getHub: (id) => api.get(`/learner-hubs/${id}`),
-    createHub: (data) => api.post('/learner-hubs', data),
-    joinHub: (id, data) => api.post(`/learner-hubs/${id}/join`, data),
+    getHubs: (params) => api.get('/hubs', { params }),
+    getHub: (id) => api.get(`/hubs/${id}`),
+    createHub: (data) => api.post('/hubs', data),
+    joinHub: (id, data) => api.post(`/hubs/${id}/join`, data),
     // Note: The origin/main version of leaveHub includes 'data', which might be needed
-    leaveHub: (id, data) => api.delete(`/learner-hubs/${id}/leave`, { data }),
-    approveRequest: (hubId, userId) => api.post(`/learner-hubs/${hubId}/approve/${userId}`),
-    rejectRequest: (hubId, userId) => api.post(`/learner-hubs/${hubId}/reject/${userId}`),
-    addResource: (hubId, data) => api.post(`/learner-hubs/${hubId}/resources`, data),
+    leaveHub: (id, data) => api.delete(`/hubs/${id}/leave`, { data }),
+    approveRequest: (hubId, userId) => api.post(`/hubs/${hubId}/approve/${userId}`),
+    rejectRequest: (hubId, userId) => api.post(`/hubs/${hubId}/reject/${userId}`),
+    addResource: (hubId, data) => api.post(`/hubs/${hubId}/resources`, data),
     // Added from HEAD (develop branch) as it was missing in origin/main
-    getHubMembers: (id) => api.get(`/learner-hubs/${id}/members`),
+    getHubMembers: (id) => api.get(`/hubs/${id}/members`),
 };
 
 // --- Trainer API Functions ---
