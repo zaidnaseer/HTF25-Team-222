@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import {
     Home, Users, GraduationCap, Calendar,
-    User, LogOut, BookOpen, Trophy
+    User, LogOut, BookOpen, Trophy, Map
 } from 'lucide-react';
 import { getInitials } from '../lib/utils';
 
@@ -16,6 +16,7 @@ export default function Navbar() {
         { to: '/dashboard', icon: Home, label: 'Dashboard' },
         { to: '/hubs', icon: Users, label: 'Learner Hubs' },
         { to: '/trainers', icon: GraduationCap, label: 'Find Trainers' },
+        { to: '/roadmaps', icon: Map, label: 'Roadmaps' },
         { to: '/sessions', icon: Calendar, label: 'My Sessions' },
     ];
 

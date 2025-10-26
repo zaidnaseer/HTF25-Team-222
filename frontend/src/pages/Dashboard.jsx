@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
 import { Badge } from '../components/ui/badge';
-import { learnerHubAPI, sessionAPI } from '../services/api';
+import { learnerHubAPI, sessionAPI, activityAPI } from '../services/api';
 import { Users, Calendar, Trophy, TrendingUp, ArrowRight, Clock } from 'lucide-react';
 import { formatDate, getInitials } from '../lib/utils';
 
@@ -13,6 +13,7 @@ export default function Dashboard() {
     const { user } = useAuth();
     const [hubs, setHubs] = useState([]);
     const [sessions, setSessions] = useState([]);
+    const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -21,12 +22,14 @@ export default function Dashboard() {
 
     const loadData = async () => {
         try {
-            const [hubsRes, sessionsRes] = await Promise.all([
+            const [hubsRes, sessionsRes, activitiesRes] = await Promise.all([
                 learnerHubAPI.getHubs({ limit: 3 }),
-                sessionAPI.getSessions({ status: 'scheduled', limit: 5 })
+                sessionAPI.getSessions({ status: 'scheduled', limit: 5 }),
+                activityAPI.getActivities({ status: 'upcoming' })
             ]);
             setHubs(hubsRes.data);
             setSessions(sessionsRes.data);
+            setActivities(activitiesRes.data.slice(0, 5));
         } catch (error) {
             console.error('Failed to load dashboard data:', error);
         } finally {
@@ -70,6 +73,44 @@ export default function Dashboard() {
             </div>
 
             <div className="grid lg:grid-cols-2 gap-8">
+                {/* Upcoming Activities */}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle>Upcoming Activities</CardTitle>
+                            <CardDescription>Quizzes, contests, and events</CardDescription>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        {activities.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <p>No upcoming activities</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {activities.map((activity) => (
+                                    <Link key={activity._id} to={`/hubs/${activity.learnerHub._id}`}>
+                                        <div className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-medium truncate">{activity.title}</p>
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <Clock className="h-3 w-3" />
+                                                    {formatDate(activity.startDate)}
+                                                </div>
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    {activity.learnerHub?.name}
+                                                </p>
+                                            </div>
+                                            <Badge>{activity.type}</Badge>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
                 {/* Upcoming Sessions */}
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
@@ -116,57 +157,57 @@ export default function Dashboard() {
                         )}
                     </CardContent>
                 </Card>
-
-                {/* Learner Hubs */}
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div>
-                            <CardTitle>Your Learner Hubs</CardTitle>
-                            <CardDescription>Communities you're part of</CardDescription>
-                        </div>
-                        <Link to="/hubs">
-                            <Button variant="ghost" size="sm">
-                                Explore <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
-                        </Link>
-                    </CardHeader>
-                    <CardContent>
-                        {hubs.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
-                                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                <p>You haven't joined any hubs yet</p>
-                                <Link to="/hubs">
-                                    <Button variant="outline" className="mt-4">
-                                        Browse Hubs
-                                    </Button>
-                                </Link>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {hubs.map((hub) => (
-                                    <Link key={hub._id} to={`/hubs/${hub._id}`}>
-                                        <div className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer">
-                                            <img
-                                                src={hub.coverImage}
-                                                alt={hub.name}
-                                                className="h-16 w-16 rounded-lg object-cover"
-                                            />
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-medium truncate">{hub.name}</p>
-                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                    <Users className="h-3 w-3" />
-                                                    {hub.totalMembers} members
-                                                </div>
-                                            </div>
-                                            <Badge variant="outline">{hub.category}</Badge>
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
             </div>
+
+            {/* Learner Hubs */}
+            <Card className="mt-8">
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Your Learner Hubs</CardTitle>
+                        <CardDescription>Communities you're part of</CardDescription>
+                    </div>
+                    <Link to="/hubs">
+                        <Button variant="ghost" size="sm">
+                            Explore <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                    </Link>
+                </CardHeader>
+                <CardContent>
+                    {hubs.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                            <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>You haven't joined any hubs yet</p>
+                            <Link to="/hubs">
+                                <Button variant="outline" className="mt-4">
+                                    Browse Hubs
+                                </Button>
+                            </Link>
+                        </div>
+                    ) : (
+                        <div className="grid md:grid-cols-3 gap-4">
+                            {hubs.map((hub) => (
+                                <Link key={hub._id} to={`/hubs/${hub._id}`}>
+                                    <div className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer">
+                                        <img
+                                            src={hub.coverImage}
+                                            alt={hub.name}
+                                            className="h-16 w-16 rounded-lg object-cover"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium truncate">{hub.name}</p>
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <Users className="h-3 w-3" />
+                                                {hub.totalMembers} members
+                                            </div>
+                                        </div>
+                                        <Badge variant="outline">{hub.category}</Badge>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             {/* Quick Actions */}
             <Card className="mt-8">
