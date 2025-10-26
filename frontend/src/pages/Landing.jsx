@@ -44,7 +44,7 @@ export default function Landing() {
         <div className="min-h-screen">
             {/* Hero Section */}
             <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-purple-50 to-pink-50 dark:from-primary/20 dark:via-purple-950 dark:to-pink-950">
-                <div className="container mx-auto px-4 py-24">
+                <div className="relative z-10 container mx-auto px-4 py-24">
                     <div className="max-w-4xl mx-auto text-center">
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 mb-6">
                             <Sparkles className="h-4 w-4 text-primary" />
@@ -68,7 +68,7 @@ export default function Landing() {
                             </Link>
                             <Link to="/login">
                                 <Button size="lg" variant="outline" className="text-lg px-8">
-                                    Sign In
+                                    Sign in
                                 </Button>
                             </Link>
                         </div>

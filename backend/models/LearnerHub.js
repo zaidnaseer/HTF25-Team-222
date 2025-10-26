@@ -1,6 +1,11 @@
 import mongoose from 'mongoose';
 
 const learnerHubSchema = new mongoose.Schema({
+    hubId: {
+        type: String,
+        unique: true,
+        required: true
+    },
     name: {
         type: String,
         required: true,
@@ -55,7 +60,6 @@ const learnerHubSchema = new mongoose.Schema({
             default: Date.now
         }
     }],
-    // Gamification settings
     gamificationEnabled: {
         type: Boolean,
         default: true
@@ -70,17 +74,14 @@ const learnerHubSchema = new mongoose.Schema({
             default: 0
         }
     }],
-    // Roadmap
     roadmap: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Roadmap'
     },
-    // Activities and events
     upcomingEvents: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Activity'
     }],
-    // Industry connection
     industryMentors: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
@@ -101,7 +102,6 @@ const learnerHubSchema = new mongoose.Schema({
             default: Date.now
         }
     }],
-    // Stats
     totalMembers: {
         type: Number,
         default: 0
@@ -114,12 +114,32 @@ const learnerHubSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Update total members before saving
+// ✅ Auto-update totalMembers
 learnerHubSchema.pre('save', function (next) {
     this.totalMembers = this.members.length;
+    next();
+});
+
+// ✅ Generate unique hubId before saving (e.g. LO-10001)
+learnerHubSchema.pre('validate', async function (next) {
+    if (!this.hubId) {
+        const lastHub = await mongoose.model('LearnerHub')
+            .findOne({})
+            .sort({ createdAt: -1 })
+            .select('hubId');
+
+        let nextNumber = 10001;
+        if (lastHub && lastHub.hubId) {
+            const match = lastHub.hubId.match(/LO-(\d+)/);
+            if (match && match[1]) nextNumber = parseInt(match[1]) + 1;
+        }
+
+        this.hubId = `LO-${nextNumber}`;
+    }
     next();
 });
 
 const LearnerHub = mongoose.model('LearnerHub', learnerHubSchema);
 
 export default LearnerHub;
+        
