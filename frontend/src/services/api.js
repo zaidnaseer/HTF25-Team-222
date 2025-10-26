@@ -44,14 +44,14 @@ export const userAPI = {
 
 // --- Learner Hub API Functions ---
 export const learnerHubAPI = {
-    getHubs: (params) => api.get('/learner-hubs', { params }),
-    getHub: (id) => api.get(`/learner-hubs/${id}`),
-    createHub: (data) => api.post('/learner-hubs', data),
-    joinHub: (id, data) => api.post(`/learner-hubs/${id}/join`, data),
-    leaveHub: (id, data) => api.delete(`/learner-hubs/${id}/leave`, { data }),
-    approveRequest: (hubId, userId) => api.post(`/learner-hubs/${hubId}/approve/${userId}`),
-    addResource: (hubId, data) => api.post(`/learner-hubs/${hubId}/resources`, data),
-    getHubMembers: (id) => api.get(`/learner-hubs/${id}/members`),
+    getHubs: (params) => api.get('/hubs', { params }),
+    getHub: (id) => api.get(`/hubs/${id}`),
+    createHub: (data) => api.post('/hubs', data),
+    joinHub: (id, data) => api.post(`/hubs/${id}/join`, data),
+    leaveHub: (id, data) => api.delete(`/hubs/${id}/leave`, { data }),
+    approveRequest: (hubId, userId) => api.post(`/hubs/${hubId}/approve/${userId}`),
+    addResource: (hubId, data) => api.post(`/hubs/${hubId}/resources`, data),
+    getHubMembers: (id) => api.get(`/hubs/${id}/members`),
 };
 
 // --- Trainer API Functions ---
@@ -119,6 +119,7 @@ export const roadmapAPI = {
 
     // --- ADDED FUNCTION for AI Generation ---
     generateRoadmap: (data) => api.post('/roadmaps/generate', data),
+    getHubRoadmaps: (hubId) => api.get(`/hubs/${hubId}/roadmaps`),
     // ------------------------------------
 };
 
@@ -137,6 +138,7 @@ export const messageAPI = {
     sendMessage: (data) => api.post('/messages', data),                    // Send a message in a hub chat
     reactToMessage: (id, data) => api.post(`/messages/${id}/react`, data),     // Add reaction to a message
 };
+
 
 // Export the configured Axios instance if needed elsewhere directly
 export default api;
