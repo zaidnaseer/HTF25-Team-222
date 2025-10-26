@@ -65,7 +65,6 @@ export const learnerHubAPI = {
     }),
     getResources: (hubId) => api.get(`/hubs/${hubId}/resources`),
     deleteResource: (hubId, resourceId) => api.delete(`/hubs/${hubId}/resources/${resourceId}`),
-    // Added from HEAD (develop branch) as it was missing in origin/main
     getHubMembers: (id) => api.get(`/hubs/${id}/members`),
 };
 
@@ -134,6 +133,7 @@ export const roadmapAPI = {
 
     // --- ADDED FUNCTION for AI Generation ---
     generateRoadmap: (data) => api.post('/roadmaps/generate', data),
+    getHubRoadmaps: (hubId) => api.get(`/hubs/${hubId}/roadmaps`),
     // ------------------------------------
 };
 
@@ -152,6 +152,7 @@ export const messageAPI = {
     sendMessage: (data) => api.post('/messages', data),                    // Send a message in a hub chat
     reactToMessage: (id, data) => api.post(`/messages/${id}/react`, data),     // Add reaction to a message
 };
+
 
 // Export the configured Axios instance if needed elsewhere directly
 export default api;
