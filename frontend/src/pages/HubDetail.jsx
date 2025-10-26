@@ -28,6 +28,10 @@ export default function HubDetail() {
     const [isCreator, setIsCreator] = useState(false);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+    const [showOwnerLeaveDialog, setShowOwnerLeaveDialog] = useState(false);
+    const [ownerLeaveAction, setOwnerLeaveAction] = useState('transfer'); // 'transfer' or 'delete'
+    const [selectedNewOwner, setSelectedNewOwner] = useState('');
+    const [showConfirmRandomOwner, setShowConfirmRandomOwner] = useState(false);
     const [activityForm, setActivityForm] = useState({
         title: '',
         description: '',
@@ -101,6 +105,42 @@ export default function HubDetail() {
             console.error('Failed to leave hub:', error);
             alert('Failed to leave hub. Please try again.');
         }
+    };
+
+    const handleOwnerLeave = async () => {
+        try {
+            if (ownerLeaveAction === 'transfer' && !selectedNewOwner) {
+                // Show confirmation for random owner assignment
+                setShowConfirmRandomOwner(true);
+                return;
+            }
+
+            const payload = {
+                action: ownerLeaveAction,
+                newOwnerId: selectedNewOwner || undefined
+            };
+
+            const response = await learnerHubAPI.leaveHub(id, payload);
+            setShowOwnerLeaveDialog(false);
+            setShowConfirmRandomOwner(false);
+
+            // Redirect to learner hubs page after leaving
+            navigate('/hubs');
+
+            if (response.data.deleted) {
+                alert('Hub has been deleted successfully.');
+            } else {
+                alert(response.data.message);
+            }
+        } catch (error) {
+            console.error('Failed to leave hub:', error);
+            alert('Failed to leave hub. Please try again.');
+        }
+    };
+
+    const getEligibleMembers = () => {
+        if (!hub) return [];
+        return hub.members.filter(m => m.user._id !== user._id);
     };
 
     const handleSendMessage = async (e) => {
@@ -206,6 +246,132 @@ export default function HubDetail() {
                 <Badge className="text-lg px-4 py-2">{hub.category}</Badge>
                 {!isMember && (
                     <Button size="lg" onClick={handleJoinHub}>Join Hub</Button>
+                )}
+                {isMember && isCreator && (
+                    <Dialog open={showOwnerLeaveDialog} onOpenChange={setShowOwnerLeaveDialog}>
+                        <DialogTrigger asChild>
+                            <Button size="lg" variant="outline" className="ml-auto">
+                                <LogOut className="mr-2 h-4 w-4" />
+                                Leave Hub
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl">
+                            <DialogHeader>
+                                <DialogTitle>Leave Hub as Owner</DialogTitle>
+                                <DialogDescription>
+                                    As the owner, you have options when leaving this hub.
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-3">
+                                    <Label className="text-base font-semibold">What would you like to do?</Label>
+
+                                    <div className="space-y-2">
+                                        <label className="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                                            <input
+                                                type="radio"
+                                                name="ownerAction"
+                                                value="transfer"
+                                                checked={ownerLeaveAction === 'transfer'}
+                                                onChange={(e) => setOwnerLeaveAction(e.target.value)}
+                                                className="mt-1"
+                                            />
+                                            <div className="flex-1">
+                                                <div className="font-medium">Transfer Ownership & Leave</div>
+                                                <p className="text-sm text-muted-foreground">
+                                                    Assign a new owner and leave as a regular member
+                                                </p>
+                                            </div>
+                                        </label>
+
+                                        <label className="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                                            <input
+                                                type="radio"
+                                                name="ownerAction"
+                                                value="delete"
+                                                checked={ownerLeaveAction === 'delete'}
+                                                onChange={(e) => setOwnerLeaveAction(e.target.value)}
+                                                className="mt-1"
+                                            />
+                                            <div className="flex-1">
+                                                <div className="font-medium text-destructive">Delete Entire Hub</div>
+                                                <p className="text-sm text-muted-foreground">
+                                                    Permanently delete this hub and remove all members
+                                                </p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {ownerLeaveAction === 'transfer' && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="newOwner">Select New Owner (Optional)</Label>
+                                        <Select value={selectedNewOwner} onValueChange={setSelectedNewOwner}>
+                                            <SelectTrigger id="newOwner">
+                                                <SelectValue placeholder="Click to select a member (or leave blank for random assignment)" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {getEligibleMembers().map((member) => (
+                                                    <SelectItem key={member.user._id} value={member.user._id}>
+                                                        {member.user.name} ({member.role})
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        {selectedNewOwner && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setSelectedNewOwner('')}
+                                                className="text-xs"
+                                            >
+                                                Clear selection (random assignment)
+                                            </Button>
+                                        )}
+                                        {!selectedNewOwner && (
+                                            <p className="text-xs text-amber-600 dark:text-amber-500">
+                                                ⚠️ If you don't select anyone, a random member will be assigned as the new owner.
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {!showConfirmRandomOwner ? (
+                                <div className="flex gap-2 justify-end">
+                                    <Button variant="outline" onClick={() => setShowOwnerLeaveDialog(false)}>
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        variant={ownerLeaveAction === 'delete' ? 'destructive' : 'default'}
+                                        onClick={handleOwnerLeave}
+                                    >
+                                        {ownerLeaveAction === 'delete' ? 'Delete Hub' : 'Proceed'}
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
+                                        <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                                            Are you sure you want to proceed without selecting a new owner?
+                                        </p>
+                                        <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                                            A random member will be automatically assigned as the new owner.
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-2 justify-end">
+                                        <Button variant="outline" onClick={() => setShowConfirmRandomOwner(false)}>
+                                            Go Back & Select Owner
+                                        </Button>
+                                        <Button onClick={handleOwnerLeave}>
+                                            Confirm Random Assignment
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </DialogContent>
+                    </Dialog>
                 )}
                 {isMember && !isCreator && (
                     <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>

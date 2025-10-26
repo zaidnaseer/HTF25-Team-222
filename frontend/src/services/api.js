@@ -43,7 +43,7 @@ export const learnerHubAPI = {
     getHub: (id) => api.get(`/learner-hubs/${id}`),
     createHub: (data) => api.post('/learner-hubs', data),
     joinHub: (id, data) => api.post(`/learner-hubs/${id}/join`, data),
-    leaveHub: (id) => api.delete(`/learner-hubs/${id}/leave`),
+    leaveHub: (id, data) => api.delete(`/learner-hubs/${id}/leave`, { data }),
     approveRequest: (hubId, userId) => api.post(`/learner-hubs/${hubId}/approve/${userId}`),
     addResource: (hubId, data) => api.post(`/learner-hubs/${hubId}/resources`, data),
 };
