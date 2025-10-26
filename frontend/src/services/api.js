@@ -3,6 +3,12 @@ import axios from 'axios';
 
 // Determine API URL based on environment variable or default to localhost
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const BASE_URL = API_URL.replace('/api', ''); // Remove /api for resource URLs
+
+export const getResourceUrl = (path) => {
+    if (path.startsWith('http')) return path;
+    return `${BASE_URL}${path}`;
+};
 
 // Create an Axios instance with base configuration
 const api = axios.create({
