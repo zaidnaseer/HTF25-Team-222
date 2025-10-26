@@ -128,46 +128,45 @@ router.get('/:id/available-slots', async (req, res) => {
 
         const trainerTimezone = availability.timezone;
         const numberOfDays = parseInt(days);
-        const queryStartDate = startDate ? new Date(startDate) : new Date(); // Use provided start date or now
+        // Ensure queryStartDate is treated as the start of the day in UTC for consistent range queries
+        const queryStartDateUTC = startDate ? startOfDay(new Date(startDate)) : startOfDay(new Date());
 
-        // Get existing booked/pending sessions within the relevant date range
         // Calculate end date based on queryStartDate and days
-        const queryEndDate = addDays(queryStartDate, numberOfDays);
+        const queryEndDateUTC = addDays(queryStartDateUTC, numberOfDays);
+
+        // Get existing booked/pending sessions within the relevant date range (UTC comparison)
         const bookedSessions = await Session.find({
             trainer: req.params.id,
-            status: { $in: ['pending', 'scheduled'] },
-            // Ensure we query based on UTC times in the database
-            scheduledAt: { $gte: queryStartDate, $lt: queryEndDate }
+            status: 'scheduled', // Correctly includes pending
+            scheduledAt: { $gte: queryStartDateUTC, $lt: queryEndDateUTC }
         });
-        // Store booked slots as UTC ISO strings for easy comparison
-        const bookedSlotsUTC = bookedSessions.map(s => formatISO(s.scheduledAt));
+        // --- CHANGE 1: No longer need bookedSlotsUTC array ---
+        // const bookedSlotsUTC = bookedSessions.map(s => formatISO(s.scheduledAt));
 
         const availableSlots = [];
         const nowUTC = new Date(); // Current time in UTC
 
         for (let i = 0; i < numberOfDays; i++) {
             // --- Calculate the current date IN THE TRAINER'S TIMEZONE ---
-            const dateIteratorUTC = addDays(queryStartDate, i);
+            const dateIteratorUTC = addDays(queryStartDateUTC, i); // Iterate using UTC start date
             const currentDateInTrainerTZ = toZonedTime(dateIteratorUTC, trainerTimezone);
             const dayStartInTrainerTZ = startOfDay(currentDateInTrainerTZ); // Start of the day in trainer's TZ
             const dayOfWeek = getDay(dayStartInTrainerTZ); // 0 (Sun) to 6 (Sat)
 
-            // Find recurring availability rule for this day of the week
+            // Find recurring availability rule for this day
             const dayRule = availability.recurring.find(r => r.dayOfWeek === dayOfWeek && r.enabled);
-            if (!dayRule) continue; // Skip if trainer is not available on this day
+            if (!dayRule) continue; // Skip if trainer unavailable
 
             // Check if this specific date is blocked by an exception
-            // Compare dates only (YYYY-MM-DD) in trainer's TZ
             const dateStringYYYYMMDD = formatISO(dayStartInTrainerTZ, { representation: 'date' });
-            const isBlocked = availability.exceptions?.some(ex =>
-                ex.type === 'blocked' && ex.date === dateStringYYYYMMDD
+            const isBlockedDate = availability.exceptions?.some(ex =>
+                ex.type === 'blocked' && ex.date === dateStringYYYYMMDD // Comparing date part only
             );
-            if (isBlocked) continue; // Skip if date is blocked
+            if (isBlockedDate) continue; // Skip if date is blocked
 
             // --- Generate slots for the active rule ---
             dayRule.sessionDurations.forEach(duration => {
-                // --- Parse start/end times IN THE TRAINER'S TIMEZONE ---
-                // Create Date objects representing the start/end time *on this specific date* in the trainer's timezone
+                // Parse start/end times IN THE TRAINER'S TIMEZONE for this specific date
                 const startTimeInTrainerTZ = parse(`${dateStringYYYYMMDD} ${dayRule.startTime}`, 'yyyy-MM-dd HH:mm', dayStartInTrainerTZ);
                 const endTimeInTrainerTZ = parse(`${dateStringYYYYMMDD} ${dayRule.endTime}`, 'yyyy-MM-dd HH:mm', dayStartInTrainerTZ);
 
@@ -175,22 +174,24 @@ router.get('/:id/available-slots', async (req, res) => {
 
                 while (true) {
                     const currentSlotEndInTrainerTZ = addMinutes(currentSlotStartInTrainerTZ, duration);
-                    // Break if the slot end time goes past the defined end time for the day
+                    // Break if slot goes past the defined end time
                     if (currentSlotEndInTrainerTZ > endTimeInTrainerTZ) break;
 
-                    // --- Convert the slot start time to UTC for comparison and storage ---
+                    // Convert the potential slot start time to UTC
                     const currentSlotStartUTC = fromZonedTime(currentSlotStartInTrainerTZ, trainerTimezone);
-                    const slotISO_UTC = formatISO(currentSlotStartUTC); // Get UTC ISO string
 
-                    // Check if this slot is already booked
-                    const isBooked = bookedSlotsUTC.includes(slotISO_UTC);
+                    // --- CHANGE 2: Compare time values instead of ISO strings ---
+                    // Check if this exact UTC time matches any booked/pending session's scheduledAt time
+                    const isBooked = bookedSessions.some(session =>
+                       session.scheduledAt.getTime() === currentSlotStartUTC.getTime()
+                    );                    // --- End Change 2 ---
 
-                    // --- Check if the slot is in the future (compare UTC times) ---
+                    // Check if the slot is in the future (compare UTC times)
                     if (currentSlotStartUTC > nowUTC) {
                         availableSlots.push({
-                            startTime: slotISO_UTC, // Send UTC ISO string to frontend
+                            startTime: formatISO(currentSlotStartUTC), // Send standard UTC ISO string to frontend
                             duration,
-                            isBooked
+                            isBooked // Use the result of the time comparison
                         });
                     }
 
@@ -207,8 +208,6 @@ router.get('/:id/available-slots', async (req, res) => {
         res.status(500).json({ message: 'Failed to generate slots', error: error.message });
     }
 });
-
-
 // ==================== EXISTING ENDPOINTS (Kept) ====================
 
 // @route    PUT /api/trainers/profile
