@@ -172,6 +172,17 @@ router.delete('/:id/leave', protect, async (req, res) => {
             return res.status(404).json({ message: 'Hub not found' });
         }
 
+        // Prevent the creator from leaving their own hub
+        if (hub.creator.toString() === req.user._id.toString()) {
+            return res.status(403).json({ message: 'Hub creator cannot leave the hub' });
+        }
+
+        // Check if user is a member
+        const isMember = hub.members.some(m => m.user.toString() === req.user._id.toString());
+        if (!isMember) {
+            return res.status(400).json({ message: 'You are not a member of this hub' });
+        }
+
         hub.members = hub.members.filter(m => m.user.toString() !== req.user._id.toString());
         await hub.save();
 

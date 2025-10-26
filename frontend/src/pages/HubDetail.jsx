@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { learnerHubAPI, messageAPI, activityAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -11,11 +11,12 @@ import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Label } from '../components/ui/label';
-import { Users, MessageSquare, Trophy, Calendar, Send, FileText, Plus, Trash2 } from 'lucide-react';
+import { Users, MessageSquare, Trophy, Calendar, Send, FileText, Plus, Trash2, LogOut } from 'lucide-react';
 import { getInitials, formatDate } from '../lib/utils';
 
 export default function HubDetail() {
     const { id } = useParams();
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [hub, setHub] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -24,7 +25,9 @@ export default function HubDetail() {
     const [loading, setLoading] = useState(true);
     const [isMember, setIsMember] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [isCreator, setIsCreator] = useState(false);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
+    const [showLeaveDialog, setShowLeaveDialog] = useState(false);
     const [activityForm, setActivityForm] = useState({
         title: '',
         description: '',
@@ -50,6 +53,7 @@ export default function HubDetail() {
             const member = response.data.members.find(m => m.user._id === user._id);
             setIsMember(!!member);
             setIsAdmin(member?.role === 'admin' || member?.role === 'moderator');
+            setIsCreator(response.data.creator._id === user._id);
             if (member) {
                 loadMessages();
             }
@@ -84,6 +88,18 @@ export default function HubDetail() {
             loadHub();
         } catch (error) {
             console.error('Failed to join hub:', error);
+        }
+    };
+
+    const handleLeaveHub = async () => {
+        try {
+            await learnerHubAPI.leaveHub(id);
+            setShowLeaveDialog(false);
+            // Redirect to learner hubs page after leaving
+            navigate('/hubs');
+        } catch (error) {
+            console.error('Failed to leave hub:', error);
+            alert('Failed to leave hub. Please try again.');
         }
     };
 
@@ -190,6 +206,32 @@ export default function HubDetail() {
                 <Badge className="text-lg px-4 py-2">{hub.category}</Badge>
                 {!isMember && (
                     <Button size="lg" onClick={handleJoinHub}>Join Hub</Button>
+                )}
+                {isMember && !isCreator && (
+                    <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+                        <DialogTrigger asChild>
+                            <Button size="lg" variant="outline" className="ml-auto">
+                                <LogOut className="mr-2 h-4 w-4" />
+                                Leave Hub
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Leave Learner Hub</DialogTitle>
+                                <DialogDescription>
+                                    Are you sure you want to leave "{hub.name}"? You will lose access to the chat, activities, and resources.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="flex gap-2 justify-end mt-4">
+                                <Button variant="outline" onClick={() => setShowLeaveDialog(false)}>
+                                    Cancel
+                                </Button>
+                                <Button variant="destructive" onClick={handleLeaveHub}>
+                                    Leave Hub
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 )}
             </div>
 
