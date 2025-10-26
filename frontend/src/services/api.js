@@ -45,6 +45,7 @@ export const learnerHubAPI = {
     joinHub: (id, data) => api.post(`/learner-hubs/${id}/join`, data),
     leaveHub: (id, data) => api.delete(`/learner-hubs/${id}/leave`, { data }),
     approveRequest: (hubId, userId) => api.post(`/learner-hubs/${hubId}/approve/${userId}`),
+    rejectRequest: (hubId, userId) => api.post(`/learner-hubs/${hubId}/reject/${userId}`),
     addResource: (hubId, data) => api.post(`/learner-hubs/${hubId}/resources`, data),
 };
 

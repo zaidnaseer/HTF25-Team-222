@@ -11,7 +11,7 @@ import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Label } from '../components/ui/label';
-import { Users, MessageSquare, Trophy, Calendar, Send, FileText, Plus, Trash2, LogOut } from 'lucide-react';
+import { Users, MessageSquare, Trophy, Calendar, Send, FileText, Plus, Trash2, LogOut, UserCheck, UserX } from 'lucide-react';
 import { getInitials, formatDate } from '../lib/utils';
 
 export default function HubDetail() {
@@ -92,6 +92,26 @@ export default function HubDetail() {
             loadHub();
         } catch (error) {
             console.error('Failed to join hub:', error);
+        }
+    };
+
+    const handleApproveRequest = async (userId) => {
+        try {
+            await learnerHubAPI.approveRequest(id, userId);
+            loadHub();
+        } catch (error) {
+            console.error('Failed to approve request:', error);
+            alert('Failed to approve request. Please try again.');
+        }
+    };
+
+    const handleRejectRequest = async (userId) => {
+        try {
+            await learnerHubAPI.rejectRequest(id, userId);
+            loadHub();
+        } catch (error) {
+            console.error('Failed to reject request:', error);
+            alert('Failed to reject request. Please try again.');
         }
     };
 
@@ -454,28 +474,85 @@ export default function HubDetail() {
                 </TabsContent>
 
                 <TabsContent value="members">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Members ({hub.members.length})</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid md:grid-cols-2 gap-4">
-                                {hub.members.map((member) => (
-                                    <div key={member._id} className="flex items-center gap-3 p-4 rounded-lg border">
-                                        <Avatar>
-                                            <AvatarImage src={member.user.avatar} />
-                                            <AvatarFallback>{getInitials(member.user.name)}</AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex-1">
-                                            <p className="font-medium">{member.user.name}</p>
-                                            <p className="text-sm text-muted-foreground">Level {member.user.level}</p>
-                                        </div>
-                                        <Badge>{member.role}</Badge>
+                    <div className="space-y-6">
+                        {/* Pending Requests Section - Only visible to admins/moderators */}
+                        {isAdmin && hub.pendingRequests && hub.pendingRequests.length > 0 && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <UserCheck className="h-5 w-5" />
+                                        Pending Requests ({hub.pendingRequests.length})
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Review and manage join requests for this hub
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-3">
+                                        {hub.pendingRequests.map((request) => (
+                                            <div key={request._id} className="flex items-center gap-3 p-4 rounded-lg border bg-muted/20">
+                                                <Avatar>
+                                                    <AvatarImage src={request.user.avatar} />
+                                                    <AvatarFallback>{getInitials(request.user.name)}</AvatarFallback>
+                                                </Avatar>
+                                                <div className="flex-1">
+                                                    <p className="font-medium">{request.user.name}</p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Requested {formatDate(request.requestedAt)}
+                                                    </p>
+                                                    {request.message && (
+                                                        <p className="text-sm mt-1 italic">"{request.message}"</p>
+                                                    )}
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="default"
+                                                        onClick={() => handleApproveRequest(request.user._id)}
+                                                    >
+                                                        <UserCheck className="h-4 w-4 mr-1" />
+                                                        Approve
+                                                    </Button>
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="outline"
+                                                        onClick={() => handleRejectRequest(request.user._id)}
+                                                    >
+                                                        <UserX className="h-4 w-4 mr-1" />
+                                                        Reject
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Members List */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Members ({hub.members.length})</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    {hub.members.map((member) => (
+                                        <div key={member._id} className="flex items-center gap-3 p-4 rounded-lg border">
+                                            <Avatar>
+                                                <AvatarImage src={member.user.avatar} />
+                                                <AvatarFallback>{getInitials(member.user.name)}</AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex-1">
+                                                <p className="font-medium">{member.user.name}</p>
+                                                <p className="text-sm text-muted-foreground">Level {member.user.level}</p>
+                                            </div>
+                                            <Badge>{member.role}</Badge>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </TabsContent>
 
                 <TabsContent value="activities">

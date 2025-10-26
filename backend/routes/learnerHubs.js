@@ -68,6 +68,7 @@ router.get('/:id', async (req, res) => {
         const hub = await LearnerHub.findById(req.params.id)
             .populate('creator', 'name avatar')
             .populate('members.user', 'name avatar points level')
+            .populate('pendingRequests.user', 'name avatar email')
             .populate('roadmap')
             .populate('industryMentors', 'name avatar bio');
 
@@ -158,6 +159,35 @@ router.post('/:id/approve/:userId', protect, async (req, res) => {
         });
 
         res.json({ message: 'User approved' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// @route   POST /api/learner-hubs/:id/reject/:userId
+// @desc    Reject join request
+// @access  Private (Admin/Moderator)
+router.post('/:id/reject/:userId', protect, async (req, res) => {
+    try {
+        const hub = await LearnerHub.findById(req.params.id);
+
+        if (!hub) {
+            return res.status(404).json({ message: 'Hub not found' });
+        }
+
+        // Check if user is admin or moderator
+        const member = hub.members.find(m => m.user.toString() === req.user._id.toString());
+        if (!member || (member.role !== 'admin' && member.role !== 'moderator')) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        // Remove from pending requests
+        hub.pendingRequests = hub.pendingRequests.filter(
+            r => r.user.toString() !== req.params.userId
+        );
+        await hub.save();
+
+        res.json({ message: 'Request rejected' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
