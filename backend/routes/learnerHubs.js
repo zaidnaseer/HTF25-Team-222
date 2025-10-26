@@ -303,37 +303,67 @@ router.delete('/:id/leave', protect, async (req, res) => {
     }
 });
 
+// @route   GET /api/hubs/:id/resources
+// @desc    Get all resources for a hub
+// @access  Private (Members only)
+router.get('/:id/resources', protect, async (req, res) => {
+    try {
+        console.log("hello")
+        const hub = await LearnerHub.findById(req.params.id)
+            .populate('resources.uploadedBy', 'name avatar');
+
+        if (!hub) {
+            return res.status(404).json({ message: 'Hub not found' });
+        }
+
+        // Check if user is a member
+        const member = hub.members.find(m => m.user.toString() === req.user._id.toString());
+        if (!member) {
+            return res.status(403).json({ message: 'You must be a member to view resources' });
+        }
+
+        res.json(hub.resources);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 // @route   POST /api/learner-hubs/:id/resources
 // @desc    Add resource to hub
-// @access  Private (Admin only)
+// @access  Private (Members only)
 router.post('/:id/resources', protect, upload.single('file'), async (req, res) => {
     try {
+        console.log('POST /resources - Headers:', req.headers);
+        console.log('POST /resources - Body:', req.body);
+        console.log('POST /resources - File:', req.file);
+
         const hub = await LearnerHub.findById(req.params.id);
 
         if (!hub) {
             return res.status(404).json({ message: 'Hub not found' });
         }
 
-        // Check if user is admin
+        // Check if user is a member
         const member = hub.members.find(m => m.user.toString() === req.user._id.toString());
-        if (!member || member.role !== 'admin') {
-            return res.status(403).json({ message: 'Only admins can add resources' });
+        if (!member) {
+            return res.status(403).json({ message: 'Only members can add resources' });
         }
 
         // Handle file upload
         if (!req.file) {
+            console.error('No file in request');
             return res.status(400).json({ message: 'No file uploaded' });
         }
 
-            const resourceData = {
-                title: req.body.title,
-                type: req.file.mimetype === 'application/pdf' ? 'document' : 'text',
-                url: `/uploads/${req.file.filename}`,
-                filename: req.file.filename,
-                mimeType: req.file.mimetype,
-                uploadedBy: req.user._id,
-                uploadedAt: new Date()
-            };        hub.resources.push(resourceData);
+        const resourceData = {
+            title: req.body.title,
+            type: req.file.mimetype === 'application/pdf' ? 'document' : 'text',
+            url: `/uploads/${req.file.filename}`,
+            filename: req.file.filename,
+            mimeType: req.file.mimetype,
+            uploadedBy: req.user._id,
+            uploadedAt: new Date()
+        }; hub.resources.push(resourceData);
         await hub.save();
 
         res.json(hub.resources[hub.resources.length - 1]);

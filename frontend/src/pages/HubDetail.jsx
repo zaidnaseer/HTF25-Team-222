@@ -200,7 +200,6 @@ export default function HubDetail() {
             const formData = new FormData();
             formData.append('title', resourceForm.title);
             formData.append('file', resourceForm.file);
-
             await learnerHubAPI.addResource(id, formData);
             
             setResourceForm({ title: '', file: null });

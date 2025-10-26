@@ -58,7 +58,13 @@ export const learnerHubAPI = {
     leaveHub: (id, data) => api.delete(`/hubs/${id}/leave`, { data }),
     approveRequest: (hubId, userId) => api.post(`/hubs/${hubId}/approve/${userId}`),
     rejectRequest: (hubId, userId) => api.post(`/hubs/${hubId}/reject/${userId}`),
-    addResource: (hubId, data) => api.post(`/hubs/${hubId}/resources`, data),
+    addResource: (hubId, formData) => api.post(`/hubs/${hubId}/resources`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    }),
+    getResources: (hubId) => api.get(`/hubs/${hubId}/resources`),
+    deleteResource: (hubId, resourceId) => api.delete(`/hubs/${hubId}/resources/${resourceId}`),
     // Added from HEAD (develop branch) as it was missing in origin/main
     getHubMembers: (id) => api.get(`/hubs/${id}/members`),
 };
