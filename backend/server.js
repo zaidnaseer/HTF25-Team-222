@@ -39,7 +39,7 @@ app.use('/uploads', express.static('uploads'));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/learner-hubs', learnerHubRoutes);
+app.use('/api/hubs', learnerHubRoutes);
 app.use('/api/trainers', trainerRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/ratings', ratingRoutes);

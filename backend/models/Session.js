@@ -6,6 +6,8 @@ const sessionSchema = new mongoose.Schema({
         required: true
     },
     description: String,
+    
+    // Participants
     trainer: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
@@ -19,25 +21,38 @@ const sessionSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'LearnerHub'
     },
+    
+    // Session type
     type: {
         type: String,
-        enum: ['one-on-one', 'group'],
-        required: true
+        enum: ['one-on-one', 'group', 'solo'],
+        default: 'one-on-one'
     },
+    
+    // Scheduling
     scheduledAt: {
         type: Date,
         required: true
     },
     duration: {
-        type: Number, // in minutes
+        type: Number,
         required: true
     },
+    
+    // NEW: Request handling fields
+    requestedSlot: Date, // Original requested time
     status: {
         type: String,
-        enum: ['scheduled', 'ongoing', 'completed', 'cancelled'],
-        default: 'scheduled'
+        enum: ['pending', 'scheduled', 'ongoing', 'completed', 'cancelled', 'rejected'],
+        default: 'pending' // Changed default to pending for request-approval flow
     },
-    meetingLink: String, // Zoom meeting link
+    rejectionReason: String,
+    suggestedAlternatives: [Date],
+    
+    // Meeting
+    meetingLink: String,
+    
+    // Payment
     price: {
         type: Number,
         default: 0
@@ -47,29 +62,43 @@ const sessionSchema = new mongoose.Schema({
         enum: ['pending', 'paid', 'refunded'],
         default: 'pending'
     },
+    
     // For group sessions
     participants: [{
         user: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User'
         },
-        joinedAt: Date
+        joinedAt: Date,
+        attended: Boolean
     }],
     maxParticipants: Number,
+    
     // Session materials
     materials: [{
         title: String,
         type: String,
         url: String
     }],
+    
     // Post-session
     notes: String,
     recordingUrl: String,
-    completedAt: Date
+    completedAt: Date,
+    
+    // NEW: Automation tracking
+    remindersSent: [{
+        type: { type: String },
+        sentAt: Date
+    }]
 }, {
     timestamps: true
 });
 
-const Session = mongoose.model('Session', sessionSchema);
+// Index for faster queries
+sessionSchema.index({ trainer: 1, status: 1 });
+sessionSchema.index({ learner: 1, status: 1 });
+sessionSchema.index({ scheduledAt: 1 });
 
+const Session = mongoose.model('Session', sessionSchema);
 export default Session;

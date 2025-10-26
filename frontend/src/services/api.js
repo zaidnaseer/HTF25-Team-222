@@ -39,13 +39,14 @@ export const userAPI = {
 
 // Learner Hub API
 export const learnerHubAPI = {
-    getHubs: (params) => api.get('/learner-hubs', { params }),
-    getHub: (id) => api.get(`/learner-hubs/${id}`),
-    createHub: (data) => api.post('/learner-hubs', data),
-    joinHub: (id, data) => api.post(`/learner-hubs/${id}/join`, data),
-    leaveHub: (id) => api.delete(`/learner-hubs/${id}/leave`),
-    approveRequest: (hubId, userId) => api.post(`/learner-hubs/${hubId}/approve/${userId}`),
-    addResource: (hubId, data) => api.post(`/learner-hubs/${hubId}/resources`, data),
+    getHubs: (params) => api.get('/hubs', { params }),
+    getHub: (id) => api.get(`/hubs/${id}`),
+    createHub: (data) => api.post('/hubs', data),
+    joinHub: (id, data) => api.post(`/hubs/${id}/join`, data),
+    leaveHub: (id) => api.delete(`/hubs/${id}/leave`),
+    approveRequest: (hubId, userId) => api.post(`/hubs/${hubId}/approve/${userId}`),
+    addResource: (hubId, data) => api.post(`/hubs/${hubId}/resources`, data),
+    getHubMembers: (id) => api.get(`/hubs/${id}/members`),
 };
 
 // Trainer API
@@ -54,9 +55,14 @@ export const trainerAPI = {
     getTrainer: (id) => api.get(`/trainers/${id}`),
     updateTrainerProfile: (data) => api.put('/trainers/profile', data),
     getPrograms: (id) => api.get(`/trainers/${id}/programs`),
+    
+    // NEW: Availability management
+    getAvailability: (id) => api.get(`/trainers/${id}/availability`),
+    updateAvailability: (data) => api.put('/trainers/availability', data),
+    getAvailableSlots: (id, params) => api.get(`/trainers/${id}/available-slots`, { params }),
 };
 
-// Session API
+// Session API (ENHANCED)
 export const sessionAPI = {
     getSessions: (params) => api.get('/sessions', { params }),
     getSession: (id) => api.get(`/sessions/${id}`),
@@ -64,6 +70,25 @@ export const sessionAPI = {
     joinSession: (id) => api.post(`/sessions/${id}/join`),
     completeSession: (id, data) => api.put(`/sessions/${id}/complete`, data),
     processPayment: (id) => api.post(`/sessions/${id}/payment`),
+    
+    // NEW: Request-based booking
+    getPendingRequests: () => api.get('/sessions/requests/pending'),
+    createRequest: (data) => api.post('/sessions/solo/request', data),
+    cancelRequest: (id) => api.delete(`/sessions/requests/${id}`),
+    
+    // NEW: Trainer approval actions
+    getTrainerRequests: () => api.get('/sessions/requests/trainer'),
+    approveRequest: (id, data) => api.post(`/sessions/solo/${id}/approve`, data),
+    rejectRequest: (id, data) => api.post(`/sessions/solo/${id}/reject`, data),
+    suggestAlternative: (id, data) => api.post(`/sessions/solo/${id}/suggest-alternative`, data),
+    
+    // NEW: Group meets
+    createGroupMeet: (data) => api.post('/sessions/group/create', data),
+    publishGroupMeet: (id) => api.patch(`/sessions/group/${id}/publish`),
+    getUpcomingGroupMeets: (params) => api.get('/sessions/group/upcoming', { params }),
+    enrollInGroupMeet: (id) => api.post(`/sessions/group/${id}/enroll`),
+    unenrollFromGroupMeet: (id) => api.delete(`/sessions/group/${id}/unenroll`),
+    sendGroupAnnouncement: (id, data) => api.post(`/sessions/group/${id}/announce`, data),
 };
 
 // Rating API

@@ -33,7 +33,8 @@ const userSchema = new mongoose.Schema({
         enum: ['learner', 'trainer', 'both'],
         default: 'learner'
     },
-    // Skills they can teach
+    
+    // Skills
     skillsToTeach: [{
         skill: String,
         level: {
@@ -41,8 +42,8 @@ const userSchema = new mongoose.Schema({
             enum: ['beginner', 'intermediate', 'advanced', 'expert']
         }
     }],
-    // Skills they want to learn
     skillsToLearn: [String],
+    
     // Trainer specific fields
     isTrainer: {
         type: Boolean,
@@ -60,14 +61,43 @@ const userSchema = new mongoose.Schema({
                 price: Number,
                 type: {
                     type: String,
-                    enum: ['one-on-one', 'group', 'learner-hub']
+                    enum: ['one-on-one', 'group', 'hub']
                 }
             }]
         },
-        availability: [{
-            day: String,
-            slots: [String]
-        }],
+        
+        // NEW: Structured availability system
+        availability: {
+            recurring: [{
+                dayOfWeek: {
+                    type: Number,
+                    min: 0,
+                    max: 6
+                }, // 0=Sunday, 6=Saturday
+                startTime: String, // "18:00"
+                endTime: String,   // "21:00"
+                sessionDurations: [Number], // [30, 60, 90]
+                enabled: {
+                    type: Boolean,
+                    default: false
+                }
+            }],
+            exceptions: [{
+                date: Date,
+                type: {
+                    type: String,
+                    enum: ['available', 'blocked']
+                },
+                reason: String,
+                startTime: String,
+                endTime: String
+            }],
+            timezone: {
+                type: String,
+                default: 'Asia/Kolkata'
+            }
+        },
+        
         totalStudents: {
             type: Number,
             default: 0
@@ -77,6 +107,7 @@ const userSchema = new mongoose.Schema({
             default: 0
         }
     },
+    
     // Gamification
     points: {
         type: Number,
@@ -94,6 +125,7 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 1
     },
+    
     // Social
     learnerHubs: [{
         type: mongoose.Schema.Types.ObjectId,
@@ -107,6 +139,7 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     }],
+    
     // Ratings
     averageRating: {
         type: Number,
@@ -115,6 +148,15 @@ const userSchema = new mongoose.Schema({
     totalRatings: {
         type: Number,
         default: 0
+    },
+    
+    // NEW: Learner routine (for conflict detection)
+    routine: {
+        freeTime: String, // e.g., "Weekdays 6-9 PM"
+        preferences: {
+            preferredDuration: Number,
+            preferredTimeSlots: [String]
+        }
     }
 }, {
     timestamps: true
@@ -135,5 +177,4 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 };
 
 const User = mongoose.model('User', userSchema);
-
 export default User;
