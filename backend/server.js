@@ -5,6 +5,10 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import connectDB from './config/db.js';
 
+// Load environment variables before using them
+dotenv.config();
+
+
 // Import routes
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
@@ -16,7 +20,6 @@ import roadmapRoutes from './routes/roadmaps.js';
 import activityRoutes from './routes/activities.js';
 import messageRoutes from './routes/messages.js';
 
-dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
