@@ -26,6 +26,7 @@ export default function HubDetail() {
     const [isMember, setIsMember] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
     const [isCreator, setIsCreator] = useState(false);
+    const [hasRequestPending, setHasRequestPending] = useState(false);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [showLeaveDialog, setShowLeaveDialog] = useState(false);
     const [showOwnerLeaveDialog, setShowOwnerLeaveDialog] = useState(false);
@@ -55,6 +56,10 @@ export default function HubDetail() {
             const response = await learnerHubAPI.getHub(id);
             setHub(response.data);
             const member = response.data.members.find(m => m.user._id === user._id);
+            const hasPendingRequest = response.data.pendingRequests?.some(
+                req => req.user._id === user._id
+            );
+            setHasRequestPending(hasPendingRequest);
             setIsMember(!!member);
             setIsAdmin(member?.role === 'admin' || member?.role === 'moderator');
             setIsCreator(response.data.creator._id === user._id);
@@ -87,9 +92,11 @@ export default function HubDetail() {
     };
 
     const handleJoinHub = async () => {
+        if (hasRequestPending) return;
+        
         try {
             await learnerHubAPI.joinHub(id);
-            loadHub();
+            await loadHub();
         } catch (error) {
             console.error('Failed to join hub:', error);
         }
@@ -265,7 +272,14 @@ export default function HubDetail() {
                 </Badge>
                 <Badge className="text-lg px-4 py-2">{hub.category}</Badge>
                 {!isMember && (
-                    <Button size="lg" onClick={handleJoinHub}>Join Hub</Button>
+                    <Button 
+                        size="lg" 
+                        onClick={handleJoinHub}
+                        disabled={hasRequestPending}
+                        variant={hasRequestPending ? "outline" : "default"}
+                    >
+                        {hasRequestPending ? "Request Pending" : hub.privacyType === 'request-to-join' ? "Request to Join" : "Join Hub"}
+                    </Button>
                 )}
                 {isMember && isCreator && (
                     <Dialog open={showOwnerLeaveDialog} onOpenChange={setShowOwnerLeaveDialog}>
