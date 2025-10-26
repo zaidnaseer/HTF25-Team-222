@@ -14,17 +14,8 @@ const storage = multer.diskStorage({
 
 // File filter function
 const fileFilter = (req, file, cb) => {
-    // Get file extension
-    const ext = path.extname(file.originalname).toLowerCase();
-
-    // Allow PDF and text files
-    if (ext === '.pdf' && file.mimetype === 'application/pdf') {
-        cb(null, true);
-    } else if (ext === '.txt' && file.mimetype === 'text/plain') {
-        cb(null, true);
-    } else {
-        cb(new Error('Invalid file type. Only .pdf and .txt files are allowed.'), false);
-    }
+    // Allow all file types
+    cb(null, true);
 };
 
 // Create the multer instance

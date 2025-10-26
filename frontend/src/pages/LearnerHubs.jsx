@@ -9,6 +9,26 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '../components/ui/label';
 import { Users, Search, Plus, Lock, Globe, UserPlus } from 'lucide-react';
 
+// Default cover images for learner hubs
+const DEFAULT_HUB_IMAGES = [
+    'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&h=400&fit=crop', // Team collaboration
+    'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&h=400&fit=crop', // Students studying
+    'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1200&h=400&fit=crop', // Group meeting
+    'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=1200&h=400&fit=crop', // Learning together
+    'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&h=400&fit=crop', // Team workspace
+    'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1200&h=400&fit=crop', // Collaborative work
+    'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200&h=400&fit=crop', // Workshop setting
+    'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200&h=400&fit=crop', // Tech learning
+];
+
+// Get a consistent random image based on hub ID
+const getDefaultHubImage = (hubId) => {
+    if (!hubId) return DEFAULT_HUB_IMAGES[0];
+    // Use hub ID to generate a consistent index
+    const hash = hubId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return DEFAULT_HUB_IMAGES[hash % DEFAULT_HUB_IMAGES.length];
+};
+
 export default function LearnerHubs() {
     const [hubs, setHubs] = useState([]);
     const [search, setSearch] = useState('');
@@ -119,7 +139,11 @@ export default function LearnerHubs() {
                 {hubs.map((hub) => (
                     <Card key={hub._id} className="overflow-hidden hover:shadow-xl transition-all group">
                         <div className="h-48 overflow-hidden">
-                            <img src={hub.coverImage} alt={hub.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                            <img
+                                src={hub.coverImage || getDefaultHubImage(hub._id)}
+                                alt={hub.name}
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            />
                         </div>
                         <CardHeader>
                             <div className="flex items-start justify-between">

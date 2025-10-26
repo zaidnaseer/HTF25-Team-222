@@ -476,16 +476,6 @@ export default function TrainerProfile() {
                                         <p className="text-muted-foreground">Sessions</p>
                                     </div>
                                 </div>
-
-                                {trainer.trainerProfile?.pricing?.hourlyRate && (
-                                    <div className="p-4 bg-primary/10 rounded-lg text-center">
-                                        <div className="flex items-center justify-center gap-1 text-2xl font-bold text-primary">
-                                            <DollarSign className="h-5 w-5" />
-                                            <span>{trainer.trainerProfile.pricing.hourlyRate}</span>
-                                            <span className="text-base font-normal">/hour</span>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
 
                              {/* Membership Check UI from develop/HEAD */}

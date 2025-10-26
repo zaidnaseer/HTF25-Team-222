@@ -14,6 +14,26 @@ import { Label } from '../components/ui/label';
 import { Users, MessageSquare, Trophy, Calendar, Send, FileText, Plus, Trash2, LogOut, UserCheck, UserX } from 'lucide-react';
 import { getInitials, formatDate } from '../lib/utils';
 
+// Default cover images for learner hubs
+const DEFAULT_HUB_IMAGES = [
+    'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&h=400&fit=crop', // Team collaboration
+    'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&h=400&fit=crop', // Students studying
+    'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1200&h=400&fit=crop', // Group meeting
+    'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=1200&h=400&fit=crop', // Learning together
+    'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&h=400&fit=crop', // Team workspace
+    'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1200&h=400&fit=crop', // Collaborative work
+    'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200&h=400&fit=crop', // Workshop setting
+    'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1200&h=400&fit=crop', // Tech learning
+];
+
+// Get a consistent random image based on hub ID
+const getDefaultHubImage = (hubId) => {
+    if (!hubId) return DEFAULT_HUB_IMAGES[0];
+    // Use hub ID to generate a consistent index
+    const hash = hubId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return DEFAULT_HUB_IMAGES[hash % DEFAULT_HUB_IMAGES.length];
+};
+
 export default function HubDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -98,7 +118,7 @@ export default function HubDetail() {
 
     const handleJoinHub = async () => {
         if (hasRequestPending) return;
-        
+
         try {
             await learnerHubAPI.joinHub(id);
             await loadHub();
@@ -178,12 +198,6 @@ export default function HubDetail() {
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            // Check file type
-            if (!file.type.match('application/pdf|text/plain')) {
-                alert('Only PDF and text files are allowed');
-                e.target.value = '';
-                return;
-            }
             // Check file size (5MB limit)
             if (file.size > 5 * 1024 * 1024) {
                 alert('File size must be less than 5MB');
@@ -319,7 +333,11 @@ export default function HubDetail() {
         <div className="container mx-auto px-4 py-8">
             {/* Hub Header */}
             <div className="relative h-64 -mx-4 mb-8">
-                <img src={hub.coverImage} alt={hub.name} className="w-full h-full object-cover" />
+                <img
+                    src={hub.coverImage || getDefaultHubImage(hub._id)}
+                    alt={hub.name}
+                    className="w-full h-full object-cover"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end">
                     <div className="container mx-auto px-4 pb-6 text-white">
                         <h1 className="text-4xl font-bold mb-2">{hub.name}</h1>
@@ -941,7 +959,7 @@ export default function HubDetail() {
                                     <DialogHeader>
                                         <DialogTitle>Add Learning Resource</DialogTitle>
                                         <DialogDescription>
-                                            Upload PDF documents or text files as learning resources for the hub members.
+                                            Upload files as learning resources for the hub members.
                                         </DialogDescription>
                                     </DialogHeader>
 
@@ -958,12 +976,11 @@ export default function HubDetail() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label htmlFor="file">File (PDF or Text only)</Label>
+                                            <Label htmlFor="file">File</Label>
                                             <Input
                                                 id="file"
                                                 type="file"
                                                 required
-                                                accept=".pdf,.txt"
                                                 onChange={handleFileChange}
                                             />
                                             <p className="text-xs text-muted-foreground">Maximum file size: 5MB</p>
@@ -993,23 +1010,23 @@ export default function HubDetail() {
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2">
                                                     <p className="font-medium">{resource.title}</p>
-                                                    <Badge variant="outline">{resource.type === 'document' ? 'PDF' : 'Text'}</Badge>
+                                                    <Badge variant="outline">{resource.type || 'File'}</Badge>
                                                 </div>
                                                 <p className="text-sm text-muted-foreground">
                                                     Added by {resource.uploadedBy?.name} on {formatDate(resource.uploadedAt)}
                                                 </p>
                                             </div>
                                             <div className="flex gap-2">
-                                                <Button 
-                                                    variant="outline" 
-                                                    size="sm" 
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
                                                     onClick={() => window.open(getResourceUrl(resource.url), '_blank', 'noopener,noreferrer')}
                                                 >
-                                                    {resource.type === 'document' ? 'Open PDF' : 'View Text'}
+                                                    Open File
                                                 </Button>
                                                 {isAdmin && (
-                                                    <Button 
-                                                        variant="outline" 
+                                                    <Button
+                                                        variant="outline"
                                                         size="sm"
                                                         onClick={() => handleDeleteResource(resource._id)}
                                                     >

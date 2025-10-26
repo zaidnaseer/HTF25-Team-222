@@ -355,9 +355,31 @@ router.post('/:id/resources', protect, upload.single('file'), async (req, res) =
             return res.status(400).json({ message: 'No file uploaded' });
         }
 
+        // Determine file type based on mimetype
+        let fileType = 'file';
+        if (req.file.mimetype.startsWith('application/pdf')) {
+            fileType = 'document';
+        } else if (req.file.mimetype.startsWith('text/')) {
+            fileType = 'text';
+        } else if (req.file.mimetype.startsWith('image/')) {
+            fileType = 'image';
+        } else if (req.file.mimetype.startsWith('video/')) {
+            fileType = 'video';
+        } else if (req.file.mimetype.startsWith('audio/')) {
+            fileType = 'audio';
+        } else if (req.file.mimetype.includes('word') || req.file.mimetype.includes('document')) {
+            fileType = 'document';
+        } else if (req.file.mimetype.includes('sheet') || req.file.mimetype.includes('excel')) {
+            fileType = 'spreadsheet';
+        } else if (req.file.mimetype.includes('presentation') || req.file.mimetype.includes('powerpoint')) {
+            fileType = 'presentation';
+        } else if (req.file.mimetype.includes('zip') || req.file.mimetype.includes('compressed')) {
+            fileType = 'archive';
+        }
+
         const resourceData = {
             title: req.body.title,
-            type: req.file.mimetype === 'application/pdf' ? 'document' : 'text',
+            type: fileType,
             url: `/uploads/${req.file.filename}`,
             filename: req.file.filename,
             mimeType: req.file.mimetype,
