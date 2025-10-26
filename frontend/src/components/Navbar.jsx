@@ -10,6 +10,7 @@ import { getInitials } from '../lib/utils';
 
 export default function Navbar() {
     const { user, logout } = useAuth();
+    
 
     const navItems = [
         { to: '/dashboard', icon: Home, label: 'Dashboard' },
@@ -55,10 +56,12 @@ export default function Navbar() {
                                     </AvatarFallback>
                                 </Avatar>
                             </Link>
-
+                            <Link to='/'>
                             <Button variant="ghost" size="icon" onClick={logout}>
                                 <LogOut className="h-5 w-5" />
                             </Button>
+
+                            </Link>
                         </div>
                     </div>
                 </div>
