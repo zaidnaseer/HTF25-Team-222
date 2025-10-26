@@ -23,7 +23,14 @@ A modern, feature-rich MERN stack application that connects learners and trainer
 - **Session Types**: Support for both 1-on-1 and group training sessions
 - **Rating System**: Post-session reviews with detailed category ratings
 
-### 💻 Modern UI
+### �️ Learning Roadmaps
+- **Approved Roadmaps**: Platform-curated learning paths for popular domains
+- **Trainer Roadmaps**: Custom programs with schedules and pricing
+- **Custom Roadmaps**: Learners can create personalized learning paths
+- **Progress Tracking**: Visual progress bars and milestone completion
+- **Template Adoption**: One-click to copy and customize roadmaps
+
+### �💻 Modern UI
 - Built with **shadcn/ui** - Beautiful, accessible components
 - **Tailwind CSS** for modern styling
 - Fully responsive design
@@ -50,95 +57,27 @@ A modern, feature-rich MERN stack application that connects learners and trainer
 
 ## 📦 Installation
 
-### Prerequisites
-- Node.js (v16 or higher)
-- MongoDB (local or Atlas)
-- npm or yarn
+**For detailed setup instructions, see [SETUP.md](SETUP.md)**
 
-### Backend Setup
-
-1. Navigate to backend directory:
+Quick reference:
 ```bash
-cd backend
+# Backend
+cd backend && npm install && npm run dev
+
+# Frontend (in another terminal)
+cd frontend && npm install && npm install tailwindcss-animate && npm run dev
 ```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Create `.env` file:
-```bash
-cp .env.example .env
-```
-
-4. Update `.env` with your values:
-```env
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/peer-learning
-JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
-JWT_EXPIRE=7d
-NODE_ENV=development
-FRONTEND_URL=http://localhost:5173
-```
-
-5. Start MongoDB (if running locally):
-```bash
-# macOS
-brew services start mongodb-community
-
-# Windows
-net start MongoDB
-
-# Linux
-sudo systemctl start mongod
-```
-
-6. Start the server:
-```bash
-# Development mode with auto-reload
-npm run dev
-
-# Production mode
-npm start
-```
-
-Server will run on `http://localhost:5000`
-
-### Frontend Setup
-
-1. Navigate to frontend directory:
-```bash
-cd frontend
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Important: Add tailwindcss-animate dependency:
-```bash
-npm install tailwindcss-animate
-```
-
-4. Start the development server:
-```bash
-npm run dev
-```
-
-Frontend will run on `http://localhost:5173`
 
 ## 🎯 Quick Start
 
-After installation, you can test the app:
+After installation:
+1. Open http://localhost:5173
+2. Register a new account
+3. Explore the features!
 
-1. Start MongoDB
-2. Run backend: `cd backend && npm run dev`
-3. Run frontend: `cd frontend && npm run dev`
-4. Open http://localhost:5173
-5. Register a new account
-6. Explore the features!
+## 📖 Setup Guide
+
+For detailed installation, environment configuration, troubleshooting, and test accounts, please refer to [SETUP.md](SETUP.md).
 
 ## 📱 Key Pages
 

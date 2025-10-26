@@ -44,14 +44,16 @@ export const userAPI = {
 
 // --- Learner Hub API Functions ---
 export const learnerHubAPI = {
-    getHubs: (params) => api.get('/hubs', { params }),                  // Get list of hubs (with filters)
-    getHub: (id) => api.get(`/hubs/${id}`),                             // Get details of a specific hub
-    createHub: (data) => api.post('/hubs', data),                      // Create a new hub
-    joinHub: (id, data) => api.post(`/hubs/${id}/join`, data),          // Request to join a hub
-    leaveHub: (id) => api.delete(`/hubs/${id}/leave`),                 // Leave a hub
-    approveRequest: (hubId, userId) => api.post(`/hubs/${hubId}/approve/${userId}`), // Approve join request (admin)
-    addResource: (hubId, data) => api.post(`/hubs/${hubId}/resources`, data), // Add a resource to a hub
-    getHubMembers: (id) => api.get(`/hubs/${id}/members`),             // Get members of a hub
+    getHubs: (params) => api.get('/learner-hubs', { params }),
+    getHub: (id) => api.get(`/learner-hubs/${id}`),
+    createHub: (data) => api.post('/learner-hubs', data),
+    joinHub: (id, data) => api.post(`/learner-hubs/${id}/join`, data),
+    // Note: The origin/main version of leaveHub includes 'data', which might be needed
+    leaveHub: (id, data) => api.delete(`/learner-hubs/${id}/leave`, { data }),
+    approveRequest: (hubId, userId) => api.post(`/learner-hubs/${hubId}/approve/${userId}`),
+    addResource: (hubId, data) => api.post(`/learner-hubs/${hubId}/resources`, data),
+    // Added from HEAD (develop branch) as it was missing in origin/main
+    getHubMembers: (id) => api.get(`/learner-hubs/${id}/members`),
 };
 
 // --- Trainer API Functions ---
@@ -105,10 +107,17 @@ export const ratingAPI = {
 
 // --- Roadmap API Functions ---
 export const roadmapAPI = {
-    getRoadmaps: (params) => api.get('/roadmaps', { params }),          // Get list of roadmaps
-    getRoadmap: (id) => api.get(`/roadmaps/${id}`),                     // Get details of a specific roadmap
-    createRoadmap: (data) => api.post('/roadmaps', data),              // Create a new roadmap
-    updateProgress: (id, data) => api.put(`/roadmaps/${id}/progress`, data), // Update progress on a roadmap step
+
+    getRoadmaps: (params) => api.get('/roadmaps', { params }),
+    getApprovedRoadmaps: () => api.get('/roadmaps/approved/all'),
+    getTrainerRoadmaps: (trainerId) => api.get(`/roadmaps/trainer/${trainerId}`),
+    getMyRoadmaps: () => api.get('/roadmaps/my/all'),
+    getRoadmap: (id) => api.get(`/roadmaps/${id}`),
+    createRoadmap: (data) => api.post('/roadmaps', data),
+    updateRoadmap: (id, data) => api.put(`/roadmaps/${id}`, data),
+    deleteRoadmap: (id) => api.delete(`/roadmaps/${id}`),
+    adoptRoadmap: (id, data) => api.post(`/roadmaps/${id}/adopt`, data),
+    updateProgress: (id, data) => api.put(`/roadmaps/${id}/progress`, data),
 };
 
 // --- Activity API Functions ---

@@ -119,11 +119,22 @@ npm run dev
 
 5. **Check Logs**: Watch terminal outputs for errors and API calls
 
+6. **Seed Approved Roadmaps**: 
+   ```bash
+   cd backend
+   npm run seed:roadmaps
+   ```
+   This will populate 6 platform-approved learning roadmaps.
+
 ## Demo Features to Test
 
 ✅ **Register** a new account  
 ✅ **Create** a learner hub  
 ✅ **Browse** trainers  
+✅ **Explore** approved roadmaps  
+✅ **Adopt** a learning roadmap  
+✅ **Create** custom roadmap  
+✅ **Track** roadmap progress  
 ✅ **Book** a session (mock payment)  
 ✅ **Join** the Zoom link  
 ✅ **Send** messages in hub chat  
@@ -138,7 +149,9 @@ npm run dev
 
 ## Need Help?
 
-Check `PROJECT_README.md` for detailed documentation.
+- **Setup Guide**: This file (SETUP.md)
+- **Project Documentation**: PROJECT_README.md
+- **Roadmap Feature**: ROADMAP_FEATURE.md
 
 ---
 

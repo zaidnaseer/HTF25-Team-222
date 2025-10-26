@@ -11,6 +11,8 @@ import Trainers from './pages/Trainers';
 import TrainerProfile from './pages/TrainerProfile';
 import Profile from './pages/Profile';
 import Sessions from './pages/Sessions';
+import Roadmaps from './pages/Roadmaps';
+import RoadmapDetail from './pages/RoadmapDetail';
 
 // --- Import the new trainer pages ---
 import TrainerDashboard from './pages/TrainerDashboard';
@@ -63,6 +65,8 @@ function App() {
                     <Route path="/trainers" element={<ProtectedRoute><Trainers /></ProtectedRoute>} />
                     <Route path="/trainers/:id" element={<ProtectedRoute><TrainerProfile /></ProtectedRoute>} />
                     <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
+                    <Route path="/roadmaps" element={<ProtectedRoute><Roadmaps /></ProtectedRoute>} />
+                    <Route path="/roadmaps/:id" element={<ProtectedRoute><RoadmapDetail /></ProtectedRoute>} />
                     <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
                     {/* --- Trainer Specific Routes --- */}

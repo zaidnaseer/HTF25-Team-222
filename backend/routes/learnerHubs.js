@@ -3,6 +3,8 @@
 import express from 'express';
 import LearnerHub from '../models/LearnerHub.js';
 import User from '../models/User.js';
+import Activity from '../models/Activity.js';
+import Message from '../models/Message.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -175,6 +177,88 @@ router.delete('/:id/leave', protect, async (req, res) => {
             return res.status(404).json({ message: 'Hub not found' });
         }
 
+        const isCreator = hub.creator.toString() === req.user._id.toString();
+
+        // Check if user is a member
+        const isMember = hub.members.some(m => m.user.toString() === req.user._id.toString());
+        if (!isMember) {
+            return res.status(400).json({ message: 'You are not a member of this hub' });
+        }
+
+        // If creator is leaving
+        if (isCreator) {
+            const { action, newOwnerId } = req.body;
+
+            if (action === 'delete') {
+                // Delete all activities associated with this hub
+                await Activity.deleteMany({ learnerHub: hub._id });
+
+                // Delete all messages associated with this hub
+                await Message.deleteMany({ learnerHub: hub._id });
+
+                // Delete the entire hub
+                await LearnerHub.findByIdAndDelete(req.params.id);
+
+                // Remove hub from all members' learnerHubs array
+                await User.updateMany(
+                    { learnerHubs: hub._id },
+                    { $pull: { learnerHubs: hub._id } }
+                );
+
+                return res.json({ message: 'Hub deleted successfully', deleted: true });
+            } else if (action === 'transfer') {
+                if (newOwnerId) {
+                    // Transfer ownership to specified member
+                    const newOwner = hub.members.find(m => m.user.toString() === newOwnerId);
+                    if (!newOwner) {
+                        return res.status(400).json({ message: 'Selected user is not a member' });
+                    }
+
+                    hub.creator = newOwnerId;
+                    // Update new owner's role to admin if not already
+                    const ownerMember = hub.members.find(m => m.user.toString() === newOwnerId);
+                    if (ownerMember) {
+                        ownerMember.role = 'admin';
+                    }
+                } else {
+                    // Randomly assign a new owner
+                    const otherMembers = hub.members.filter(m => m.user.toString() !== req.user._id.toString());
+                    if (otherMembers.length === 0) {
+                        // If creator is the only member, delete the hub and associated data
+                        await Activity.deleteMany({ learnerHub: hub._id });
+                        await Message.deleteMany({ learnerHub: hub._id });
+                        await LearnerHub.findByIdAndDelete(req.params.id);
+                        await User.findByIdAndUpdate(req.user._id, {
+                            $pull: { learnerHubs: hub._id }
+                        });
+                        return res.json({ message: 'Hub deleted as you were the only member', deleted: true });
+                    }
+
+                    const randomIndex = Math.floor(Math.random() * otherMembers.length);
+                    const newOwnerId = otherMembers[randomIndex].user;
+                    hub.creator = newOwnerId;
+                    // Update new owner's role to admin
+                    const ownerMember = hub.members.find(m => m.user.toString() === newOwnerId.toString());
+                    if (ownerMember) {
+                        ownerMember.role = 'admin';
+                    }
+                }
+
+                // Remove old owner from members and downgrade to member if they rejoin
+                hub.members = hub.members.filter(m => m.user.toString() !== req.user._id.toString());
+                await hub.save();
+
+                await User.findByIdAndUpdate(req.user._id, {
+                    $pull: { learnerHubs: hub._id }
+                });
+
+                return res.json({ message: 'Ownership transferred and you have left the hub' });
+            } else {
+                return res.status(400).json({ message: 'Invalid action. Must be "delete" or "transfer"' });
+            }
+        }
+
+        // Regular member leaving
         hub.members = hub.members.filter(m => m.user.toString() !== req.user._id.toString());
         await hub.save();
 
