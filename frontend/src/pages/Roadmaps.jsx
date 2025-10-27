@@ -1,17 +1,14 @@
-// frontend/src/pages/Roadmaps.jsx
-
 import { useState, useEffect } from 'react';
-import { roadmapAPI } from '../services/api'; // Ensure correct path
+import { roadmapAPI } from '../services/api';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea'; // Import Textarea
+import { Textarea } from '../components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Badge } from '../components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-// --- Import required icons ---
 import { Search, Plus, BookOpen, Award, Users, Clock, CheckCircle2, Target, Sparkles, Loader2, X } from 'lucide-react';
 
 const Roadmaps = () => {
@@ -22,7 +19,6 @@ const Roadmaps = () => {
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [loading, setLoading] = useState(true);
 
-    // --- State for Manual Creation Dialog ---
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
     const [newRoadmap, setNewRoadmap] = useState({
         title: '',
@@ -34,18 +30,16 @@ const Roadmaps = () => {
         milestones: [{ title: '', description: '', tasks: [{ title: '', description: '' }] }]
     });
 
-    // --- NEW: State for AI Generation Dialog ---
+    // --- UPDATED AI State ---
     const [aiDialogOpen, setAiDialogOpen] = useState(false);
     const [aiGenerating, setAiGenerating] = useState(false);
     const [aiFormData, setAiFormData] = useState({
         topic: '',
-        goal: '',
+        additionalInfo: '', // Renamed from 'goal'
         difficulty: 'beginner',
-        // duration: '', // Optional: Add if needed
+        duration: '', // Added duration field
     });
-    // --- End NEW State ---
 
-    // Updated categories list
     const categories = ['Web Development', 'Data Science', 'Mobile Development', 'Cloud Computing', 'AI/ML', 'DevOps', 'Cybersecurity', 'Game Development', 'UI/UX Design', 'Project Management', 'Other'];
 
     useEffect(() => {
@@ -66,7 +60,6 @@ const Roadmaps = () => {
             });
         } catch (error) {
             console.error('Error fetching roadmaps:', error);
-            // Consider adding user-facing error feedback
         } finally {
             setLoading(false);
         }
@@ -76,14 +69,13 @@ const Roadmaps = () => {
         try {
             await roadmapAPI.adoptRoadmap(roadmapId, {});
             alert('Roadmap adopted successfully! Find it under "My Adopted".');
-            fetchRoadmaps(); // Refresh the lists
+            fetchRoadmaps();
         } catch (error) {
             alert(error.response?.data?.message || 'Failed to adopt roadmap. You might have already adopted it.');
         }
     };
 
-    // --- Manual Roadmap Creation Handlers (Ensure these are correct) ---
-
+    // Manual Roadmap Creation Handlers
     const handleManualInputChange = (e, field) => {
         setNewRoadmap(prev => ({ ...prev, [field]: e.target.value }));
     };
@@ -119,7 +111,6 @@ const Roadmaps = () => {
         setNewRoadmap(prev => ({ ...prev, milestones: updatedMilestones }));
     };
 
-    // Handles submission of the MANUAL creation form
     const handleCreateRoadmap = async (e) => {
         e.preventDefault();
         try {
@@ -131,7 +122,7 @@ const Roadmaps = () => {
                 .map((m, mIdx) => ({
                     ...m,
                     order: mIdx + 1,
-                    tasks: m.tasks.filter(t => t.title.trim()).map(t => ({ // Filter empty tasks and map
+                    tasks: m.tasks.filter(t => t.title.trim()).map(t => ({
                         title: t.title.trim(),
                         description: t.description?.trim() || ''
                     }))
@@ -147,19 +138,19 @@ const Roadmaps = () => {
                 difficulty: newRoadmap.difficulty,
                 estimatedDuration: newRoadmap.estimatedDuration.trim(),
                 tags: newRoadmap.tags.split(',').map(t => t.trim()).filter(t => t),
-                milestones: validMilestones.map(m => ({ // Send cleaned data
+                milestones: validMilestones.map(m => ({
                     title: m.title,
                     description: m.description,
                     order: m.order,
-                    tasks: m.tasks // Already cleaned
+                    tasks: m.tasks
                 }))
             };
 
             await roadmapAPI.createRoadmap(roadmapData);
             alert('Roadmap created successfully!');
             setCreateDialogOpen(false);
-            fetchRoadmaps(); // Refresh lists
-            setNewRoadmap({ // Reset form
+            fetchRoadmaps();
+            setNewRoadmap({
                 title: '', description: '', category: '', difficulty: 'beginner', estimatedDuration: '', tags: '',
                 milestones: [{ title: '', description: '', tasks: [{ title: '', description: '' }] }]
             });
@@ -169,8 +160,7 @@ const Roadmaps = () => {
         }
     };
 
-    // --- NEW: AI Roadmap Generation Handlers ---
-
+    // --- UPDATED AI Handlers ---
     const handleAiInputChange = (e) => {
         const { name, value } = e.target;
         setAiFormData(prev => ({ ...prev, [name]: value }));
@@ -186,14 +176,15 @@ const Roadmaps = () => {
         try {
             const response = await roadmapAPI.generateRoadmap({
                 topic: aiFormData.topic,
-                goal: aiFormData.goal,
+                additionalInfo: aiFormData.additionalInfo,
                 difficulty: aiFormData.difficulty,
+                duration: aiFormData.duration,
             });
             alert('AI Roadmap generated successfully! You have automatically adopted it.');
             setAiDialogOpen(false);
-            setAiFormData({ topic: '', goal: '', difficulty: 'beginner' });
-            fetchRoadmaps(); // Refresh the lists
-            navigate(`/roadmaps/${response.data._id}`); // Navigate to the new detail page
+            setAiFormData({ topic: '', additionalInfo: '', difficulty: 'beginner', duration: '' });
+            fetchRoadmaps();
+            navigate(`/roadmaps/${response.data._id}`);
         } catch (error) {
             console.error('Failed to generate roadmap with AI:', error);
             alert(error.response?.data?.message || 'An error occurred during AI generation.');
@@ -201,16 +192,13 @@ const Roadmaps = () => {
             setAiGenerating(false);
         }
     };
-    // --- End NEW AI Handlers ---
 
-
-    // --- Filtering and Display Logic ---
-
+    // Filtering
     const filteredApprovedRoadmaps = approvedRoadmaps.filter(roadmap => {
         const lowerSearchTerm = searchTerm.toLowerCase();
         const matchesSearch = roadmap.title.toLowerCase().includes(lowerSearchTerm) ||
             (roadmap.description && roadmap.description.toLowerCase().includes(lowerSearchTerm)) ||
-            (roadmap.tags && roadmap.tags.some(tag => tag.toLowerCase().includes(lowerSearchTerm))); // Search tags too
+            (roadmap.tags && roadmap.tags.some(tag => tag.toLowerCase().includes(lowerSearchTerm)));
         const matchesCategory = selectedCategory === 'all' || roadmap.category === selectedCategory;
         return matchesSearch && matchesCategory;
     });
@@ -225,21 +213,24 @@ const Roadmaps = () => {
     };
 
     const RoadmapCard = ({ roadmap, showAdopt = false, showProgress = false }) => (
-        // Added flex flex-col h-full to make cards equal height in a grid row
         <Card className="hover:shadow-lg transition-shadow cursor-pointer flex flex-col h-full" onClick={() => navigate(`/roadmaps/${roadmap._id}`)}>
-             <CardHeader className="pb-3"> {/* Reduced padding */}
+            <CardHeader className="pb-3">
                 <div className="flex justify-between items-start mb-2 gap-2">
                     <CardTitle className="text-lg font-semibold line-clamp-2">{roadmap.title}</CardTitle>
                     {roadmap.type === 'approved' && (
-                        <Badge className="bg-purple-100 text-purple-800 border border-purple-200 text-xs shrink-0"><Award className="w-3 h-3 mr-1" />Approved</Badge>
+                        <Badge className="bg-purple-100 text-purple-800 border border-purple-200 text-xs shrink-0">
+                            <Award className="w-3 h-3 mr-1" />Approved
+                        </Badge>
                     )}
                 </div>
                 <CardDescription className="text-xs line-clamp-2">{roadmap.description || 'No description.'}</CardDescription>
             </CardHeader>
-             <CardContent className="space-y-2 text-xs flex-grow pb-3"> {/* Added flex-grow, reduced padding */}
+            <CardContent className="space-y-2 text-xs flex-grow pb-3">
                 <div className="flex flex-wrap gap-1.5">
                     <Badge variant="outline" className="text-xs">{roadmap.category || 'General'}</Badge>
-                    <Badge className={`text-xs font-medium ${getDifficultyBadgeClass(roadmap.difficulty)}`}>{roadmap.difficulty || 'N/A'}</Badge>
+                    <Badge className={`text-xs font-medium ${getDifficultyBadgeClass(roadmap.difficulty)}`}>
+                        {roadmap.difficulty || 'N/A'}
+                    </Badge>
                     {roadmap.estimatedDuration && (
                         <Badge variant="outline" className="flex items-center text-xs">
                             <Clock className="w-3 h-3 mr-1" />{roadmap.estimatedDuration}
@@ -267,12 +258,11 @@ const Roadmaps = () => {
                     </span>
                 </div>
 
-                {/* Simplified Progress Calculation for Card View (using Milestones) */}
                 {showProgress && roadmap.milestones?.length > 0 && (
-                     <div className="space-y-1 pt-1.5">
+                    <div className="space-y-1 pt-1.5">
                         <div className="flex justify-between text-xs font-medium text-gray-700">
-                             <span>Progress</span>
-                             <span>{Math.round((roadmap.milestones.filter(m => m.completed).length / roadmap.milestones.length) * 100)}%</span>
+                            <span>Progress</span>
+                            <span>{Math.round((roadmap.milestones.filter(m => m.completed).length / roadmap.milestones.length) * 100)}%</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-1.5">
                             <div
@@ -283,28 +273,29 @@ const Roadmaps = () => {
                     </div>
                 )}
             </CardContent>
-            <CardFooter className="pt-3"> {/* Reduced padding */}
+            <CardFooter className="pt-3">
                 {showAdopt && (
-                    <Button onClick={(e) => { e.stopPropagation(); handleAdoptRoadmap(roadmap._id); }} className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90" size="sm">
+                    <Button onClick={(e) => { e.stopPropagation(); handleAdoptRoadmap(roadmap._id); }} 
+                            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90" size="sm">
                         <BookOpen className="w-4 h-4 mr-2" /> Adopt
                     </Button>
                 )}
                 {showProgress && (
-                    <Button variant="outline" onClick={(e) => { e.stopPropagation(); navigate(`/roadmaps/${roadmap._id}`); }} className="w-full" size="sm">
+                    <Button variant="outline" onClick={(e) => { e.stopPropagation(); navigate(`/roadmaps/${roadmap._id}`); }} 
+                            className="w-full" size="sm">
                         Continue
                     </Button>
                 )}
-                {/* Fallback View Button */}
-                 {!showAdopt && !showProgress && (
-                      <Button variant="outline" onClick={(e) => { e.stopPropagation(); navigate(`/roadmaps/${roadmap._id}`); }} className="w-full" size="sm">
-                         View Details
-                     </Button>
-                 )}
+                {!showAdopt && !showProgress && (
+                    <Button variant="outline" onClick={(e) => { e.stopPropagation(); navigate(`/roadmaps/${roadmap._id}`); }} 
+                            className="w-full" size="sm">
+                        View Details
+                    </Button>
+                )}
             </CardFooter>
         </Card>
     );
 
-    // --- Main Return JSX ---
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 py-8">
             <div className="container mx-auto px-4">
@@ -319,7 +310,6 @@ const Roadmaps = () => {
 
                     {/* Buttons Section */}
                     <div className="flex flex-wrap gap-2">
-
                         {/* Manual Create Button & Dialog */}
                         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
                             <DialogTrigger asChild>
@@ -334,44 +324,42 @@ const Roadmaps = () => {
                                     <DialogDescription>Design your own learning path step-by-step.</DialogDescription>
                                 </DialogHeader>
                                 <form onSubmit={handleCreateRoadmap} className="space-y-6 pt-4">
-                                     {/* General Info */}
-                                     <div className="space-y-4 border-b pb-6">
-                                         {/* ... (Title, Category, Description, Difficulty, Duration, Tags Inputs as before) ... */}
-                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-4 border-b pb-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
                                                 <Label htmlFor="manual-title" className="font-semibold">Title *</Label>
                                                 <Input id="manual-title" value={newRoadmap.title} onChange={(e) => handleManualInputChange(e, 'title')} required className="mt-1"/>
                                             </div>
-                                             <div>
-                                                 <Label htmlFor="manual-category" className="font-semibold">Category *</Label>
-                                                 <select id="manual-category" value={newRoadmap.category} onChange={(e) => handleManualInputChange(e, 'category')} className="w-full border rounded-md p-2 mt-1 bg-white" required>
-                                                     <option value="">Select category</option>
-                                                     {categories.map(cat => (<option key={cat} value={cat}>{cat}</option>))}
-                                                 </select>
-                                             </div>
+                                            <div>
+                                                <Label htmlFor="manual-category" className="font-semibold">Category *</Label>
+                                                <select id="manual-category" value={newRoadmap.category} onChange={(e) => handleManualInputChange(e, 'category')} className="w-full border rounded-md p-2 mt-1 bg-white" required>
+                                                    <option value="">Select category</option>
+                                                    {categories.map(cat => (<option key={cat} value={cat}>{cat}</option>))}
+                                                </select>
+                                            </div>
                                         </div>
-                                         <div>
-                                             <Label htmlFor="manual-description" className="font-semibold">Description</Label>
-                                             <Textarea id="manual-description" value={newRoadmap.description} onChange={(e) => handleManualInputChange(e, 'description')} className="mt-1" rows={2}/>
-                                         </div>
-                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                             <div>
-                                                 <Label htmlFor="manual-difficulty" className="font-semibold">Difficulty</Label>
-                                                 <select id="manual-difficulty" value={newRoadmap.difficulty} onChange={(e) => handleManualInputChange(e, 'difficulty')} className="w-full border rounded-md p-2 mt-1 bg-white">
-                                                     <option value="beginner">Beginner</option>
-                                                     <option value="intermediate">Intermediate</option>
-                                                     <option value="advanced">Advanced</option>
-                                                 </select>
-                                             </div>
-                                             <div>
-                                                 <Label htmlFor="manual-duration" className="font-semibold">Est. Duration</Label>
-                                                 <Input id="manual-duration" placeholder="e.g., 3 months" value={newRoadmap.estimatedDuration} onChange={(e) => handleManualInputChange(e, 'estimatedDuration')} className="mt-1"/>
-                                             </div>
-                                             <div>
-                                                 <Label htmlFor="manual-tags" className="font-semibold">Tags (comma-separated)</Label>
-                                                 <Input id="manual-tags" placeholder="e.g., React, Hooks" value={newRoadmap.tags} onChange={(e) => handleManualInputChange(e, 'tags')} className="mt-1"/>
-                                             </div>
-                                         </div>
+                                        <div>
+                                            <Label htmlFor="manual-description" className="font-semibold">Description</Label>
+                                            <Textarea id="manual-description" value={newRoadmap.description} onChange={(e) => handleManualInputChange(e, 'description')} className="mt-1" rows={2}/>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div>
+                                                <Label htmlFor="manual-difficulty" className="font-semibold">Difficulty</Label>
+                                                <select id="manual-difficulty" value={newRoadmap.difficulty} onChange={(e) => handleManualInputChange(e, 'difficulty')} className="w-full border rounded-md p-2 mt-1 bg-white">
+                                                    <option value="beginner">Beginner</option>
+                                                    <option value="intermediate">Intermediate</option>
+                                                    <option value="advanced">Advanced</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="manual-duration" className="font-semibold">Est. Duration</Label>
+                                                <Input id="manual-duration" placeholder="e.g., 3 months" value={newRoadmap.estimatedDuration} onChange={(e) => handleManualInputChange(e, 'estimatedDuration')} className="mt-1"/>
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="manual-tags" className="font-semibold">Tags (comma-separated)</Label>
+                                                <Input id="manual-tags" placeholder="e.g., React, Hooks" value={newRoadmap.tags} onChange={(e) => handleManualInputChange(e, 'tags')} className="mt-1"/>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     {/* Milestones Section */}
@@ -384,40 +372,46 @@ const Roadmaps = () => {
                                         </div>
                                         {newRoadmap.milestones.map((milestone, mIndex) => (
                                             <div key={mIndex} className="border rounded-lg p-4 bg-gray-50 space-y-3 relative">
-                                                 <Button type="button" variant="ghost" size="icon" onClick={() => removeMilestone(mIndex)} className="absolute top-2 right-2 text-red-500 hover:bg-red-100 h-6 w-6"> <X className="h-4 w-4" /> </Button>
-                                                 <p className="font-medium text-sm text-gray-600">Milestone {mIndex + 1}</p>
-                                                 <div>
-                                                     <Label htmlFor={`m-title-${mIndex}`} className="text-xs font-semibold">Title *</Label>
-                                                     <Input id={`m-title-${mIndex}`} placeholder="Milestone title" value={milestone.title} onChange={(e) => handleMilestoneChange(mIndex, 'title', e.target.value)} required className="mt-1 h-8 text-sm"/>
-                                                 </div>
-                                                 <div>
-                                                     <Label htmlFor={`m-desc-${mIndex}`} className="text-xs font-semibold">Description</Label>
-                                                     <Input id={`m-desc-${mIndex}`} placeholder="Milestone objective" value={milestone.description} onChange={(e) => handleMilestoneChange(mIndex, 'description', e.target.value)} className="mt-1 h-8 text-sm"/>
-                                                 </div>
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeMilestone(mIndex)} className="absolute top-2 right-2 text-red-500 hover:bg-red-100 h-6 w-6">
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                                <p className="font-medium text-sm text-gray-600">Milestone {mIndex + 1}</p>
+                                                <div>
+                                                    <Label htmlFor={`m-title-${mIndex}`} className="text-xs font-semibold">Title *</Label>
+                                                    <Input id={`m-title-${mIndex}`} placeholder="Milestone title" value={milestone.title} onChange={(e) => handleMilestoneChange(mIndex, 'title', e.target.value)} required className="mt-1 h-8 text-sm"/>
+                                                </div>
+                                                <div>
+                                                    <Label htmlFor={`m-desc-${mIndex}`} className="text-xs font-semibold">Description</Label>
+                                                    <Input id={`m-desc-${mIndex}`} placeholder="Milestone objective" value={milestone.description} onChange={(e) => handleMilestoneChange(mIndex, 'description', e.target.value)} className="mt-1 h-8 text-sm"/>
+                                                </div>
 
-                                                 {/* Tasks */}
-                                                 <div className="border-t pt-3 mt-3 space-y-2 ml-4">
-                                                      <div className="flex justify-between items-center mb-2">
-                                                         <Label className="text-xs font-semibold">Tasks</Label>
-                                                         <Button type="button" variant="outline" size="sm" onClick={() => addTask(mIndex)} className="text-xs h-6 px-2"> <Plus className="w-2 h-2 mr-1"/> Add Task </Button>
-                                                      </div>
-                                                      {milestone.tasks.map((task, tIndex) => (
-                                                         <div key={tIndex} className="flex gap-2 items-start bg-white p-2 rounded border">
-                                                              <div className="flex-1 space-y-1">
-                                                                 <Input placeholder="Task title *" value={task.title} onChange={(e) => handleTaskChange(mIndex, tIndex, 'title', e.target.value)} required className="text-xs h-7"/>
-                                                                 <Input placeholder="Task description" value={task.description} onChange={(e) => handleTaskChange(mIndex, tIndex, 'description', e.target.value)} className="text-xs h-7"/>
-                                                              </div>
-                                                              <Button type="button" variant="ghost" size="icon" onClick={() => removeTask(mIndex, tIndex)} className="text-red-500 hover:bg-red-100 h-7 w-7"> <X className="h-3 w-3" /> </Button>
-                                                         </div>
-                                                      ))}
-                                                  </div>
-                                             </div>
+                                                {/* Tasks */}
+                                                <div className="border-t pt-3 mt-3 space-y-2 ml-4">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <Label className="text-xs font-semibold">Tasks</Label>
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => addTask(mIndex)} className="text-xs h-6 px-2">
+                                                            <Plus className="w-2 h-2 mr-1"/> Add Task
+                                                        </Button>
+                                                    </div>
+                                                    {milestone.tasks.map((task, tIndex) => (
+                                                        <div key={tIndex} className="flex gap-2 items-start bg-white p-2 rounded border">
+                                                            <div className="flex-1 space-y-1">
+                                                                <Input placeholder="Task title *" value={task.title} onChange={(e) => handleTaskChange(mIndex, tIndex, 'title', e.target.value)} required className="text-xs h-7"/>
+                                                                <Input placeholder="Task description" value={task.description} onChange={(e) => handleTaskChange(mIndex, tIndex, 'description', e.target.value)} className="text-xs h-7"/>
+                                                            </div>
+                                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeTask(mIndex, tIndex)} className="text-red-500 hover:bg-red-100 h-7 w-7">
+                                                                <X className="h-3 w-3" />
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         ))}
                                     </div>
 
                                     <DialogFooter className="pt-6">
                                         <Button type="button" variant="ghost" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
-                                        <Button type="submit" className="bg-gradient-to-r from-purple-600 to-pink-600"> Create Roadmap </Button>
+                                        <Button type="submit" className="bg-gradient-to-r from-purple-600 to-pink-600">Create Roadmap</Button>
                                     </DialogFooter>
                                 </form>
                             </DialogContent>
@@ -431,30 +425,66 @@ const Roadmaps = () => {
                                     Generate with AI
                                 </Button>
                             </DialogTrigger>
-                             <DialogContent className="sm:max-w-[500px]">
+                            <DialogContent className="sm:max-w-[500px]">
                                 <DialogHeader>
                                     <DialogTitle className="text-2xl">Generate Roadmap with AI</DialogTitle>
                                     <DialogDescription>Describe the topic or skill you want a roadmap for.</DialogDescription>
                                 </DialogHeader>
                                 <form onSubmit={handleGenerateWithAI} className="space-y-4 py-4">
-                                     <div>
-                                         <Label htmlFor="ai-topic" className="font-semibold">Main Topic/Skill *</Label>
-                                         <Input id="ai-topic" name="topic" value={aiFormData.topic} onChange={handleAiInputChange} placeholder="e.g., React Native, Advanced SQL" required className="mt-1"/>
-                                     </div>
-                                     <div>
-                                         <Label htmlFor="ai-goal" className="font-semibold">Learning Goal (Optional)</Label>
-                                         <Textarea id="ai-goal" name="goal" value={aiFormData.goal} onChange={handleAiInputChange} placeholder="e.g., Build cross-platform apps" rows={2} className="mt-1"/>
-                                     </div>
-                                     <div>
-                                         <Label htmlFor="ai-difficulty" className="font-semibold">Target Difficulty</Label>
-                                         <select id="ai-difficulty" name="difficulty" value={aiFormData.difficulty} onChange={handleAiInputChange} className="w-full border rounded-md p-2 mt-1 bg-white">
-                                             <option value="beginner">Beginner</option>
-                                             <option value="intermediate">Intermediate</option>
-                                             <option value="advanced">Advanced</option>
-                                         </select>
-                                     </div>
+                                    <div>
+                                        <Label htmlFor="ai-topic" className="font-semibold">Main Topic/Skill *</Label>
+                                        <Input 
+                                            id="ai-topic" 
+                                            name="topic" 
+                                            value={aiFormData.topic} 
+                                            onChange={handleAiInputChange} 
+                                            placeholder="e.g., React Native, Advanced SQL" 
+                                            required 
+                                            className="mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="ai-additional-info" className="font-semibold">Additional Information (Optional)</Label>
+                                        <Textarea 
+                                            id="ai-additional-info" 
+                                            name="additionalInfo" 
+                                            value={aiFormData.additionalInfo} 
+                                            onChange={handleAiInputChange} 
+                                            placeholder="e.g., Focus on building cross-platform mobile apps, include state management" 
+                                            rows={3} 
+                                            className="mt-1"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="ai-difficulty" className="font-semibold">Target Difficulty</Label>
+                                        <select 
+                                            id="ai-difficulty" 
+                                            name="difficulty" 
+                                            value={aiFormData.difficulty} 
+                                            onChange={handleAiInputChange} 
+                                            className="w-full border rounded-md p-2 mt-1 bg-white"
+                                        >
+                                            <option value="beginner">Beginner</option>
+                                            <option value="intermediate">Intermediate</option>
+                                            <option value="advanced">Advanced</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="ai-duration" className="font-semibold">Target Duration (Optional)</Label>
+                                        <Input 
+                                            id="ai-duration" 
+                                            name="duration" 
+                                            value={aiFormData.duration} 
+                                            onChange={handleAiInputChange} 
+                                            placeholder="e.g., 3 months, 8 weeks, 6 months" 
+                                            className="mt-1"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">How long do you want to spend learning this?</p>
+                                    </div>
                                     <DialogFooter className="pt-4">
-                                        <Button type="button" variant="ghost" onClick={() => setAiDialogOpen(false)} disabled={aiGenerating}>Cancel</Button>
+                                        <Button type="button" variant="ghost" onClick={() => setAiDialogOpen(false)} disabled={aiGenerating}>
+                                            Cancel
+                                        </Button>
                                         <Button type="submit" className="bg-gradient-to-r from-purple-600 to-pink-600" disabled={aiGenerating}>
                                             {aiGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
                                             {aiGenerating ? 'Generating...' : 'Generate Roadmap'}
@@ -486,67 +516,69 @@ const Roadmaps = () => {
                                 {categories.map(cat => (<option key={cat} value={cat}>{cat}</option>))}
                             </select>
                         </div>
-                        {loading ? ( <div className="text-center py-16 text-gray-500">Loading...</div> )
-                         : filteredApprovedRoadmaps.length > 0 ? (
+                        {loading ? (
+                            <div className="text-center py-16 text-gray-500">Loading...</div>
+                        ) : filteredApprovedRoadmaps.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {filteredApprovedRoadmaps.map(roadmap => (
                                     <RoadmapCard key={roadmap._id} roadmap={roadmap} showAdopt={true} />
                                 ))}
                             </div>
-                         ) : (
+                        ) : (
                             <div className="text-center py-16 text-gray-500">
                                 <Search className="w-12 h-12 mx-auto text-gray-300 mb-4" />
                                 No approved roadmaps match your search.
                             </div>
-                         )}
+                        )}
                     </TabsContent>
 
                     {/* My Created Tab Content */}
-                     <TabsContent value="my-roadmaps">
-                         {loading ? ( <div className="text-center py-16 text-gray-500">Loading...</div> )
-                         : myRoadmaps.created.length > 0 ? (
-                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                 {myRoadmaps.created.map(roadmap => (
-                                     <RoadmapCard key={roadmap._id} roadmap={roadmap} showProgress={false} />
-                                 ))}
-                             </div>
-                         ) : (
-                             <div className="text-center py-16 text-gray-500">
+                    <TabsContent value="my-roadmaps">
+                        {loading ? (
+                            <div className="text-center py-16 text-gray-500">Loading...</div>
+                        ) : myRoadmaps.created.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {myRoadmaps.created.map(roadmap => (
+                                    <RoadmapCard key={roadmap._id} roadmap={roadmap} showProgress={false} />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-16 text-gray-500">
                                 <BookOpen className="w-12 h-12 mx-auto text-gray-300 mb-4" />
                                 You haven't created any roadmaps yet.
                                 <div className="mt-4 flex justify-center gap-2">
-                                     <Button onClick={() => setCreateDialogOpen(true)}>Create Manually</Button>
-                                     <Button variant="outline" onClick={() => setAiDialogOpen(true)}>Generate with AI</Button>
+                                    <Button onClick={() => setCreateDialogOpen(true)}>Create Manually</Button>
+                                    <Button variant="outline" onClick={() => setAiDialogOpen(true)}>Generate with AI</Button>
                                 </div>
-                             </div>
-                         )}
-                     </TabsContent>
+                            </div>
+                        )}
+                    </TabsContent>
 
                     {/* Adopted Tab Content */}
                     <TabsContent value="adopted">
-                         {loading ? ( <div className="text-center py-16 text-gray-500">Loading...</div> )
-                         : myRoadmaps.adopted.length > 0 ? (
-                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                 {myRoadmaps.adopted.map(roadmap => (
-                                     <RoadmapCard key={roadmap._id} roadmap={roadmap} showProgress={true} />
-                                 ))}
-                             </div>
-                         ) : (
+                        {loading ? (
+                            <div className="text-center py-16 text-gray-500">Loading...</div>
+                        ) : myRoadmaps.adopted.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {myRoadmaps.adopted.map(roadmap => (
+                                    <RoadmapCard key={roadmap._id} roadmap={roadmap} showProgress={true} />
+                                ))}
+                            </div>
+                        ) : (
                             <div className="text-center py-16 text-gray-500">
                                 <Award className="w-12 h-12 mx-auto text-gray-300 mb-4" />
                                 You haven't adopted any roadmaps yet.
-                                {/* Button to switch tab - find the button element and click it */}
                                 <Button
-                                     onClick={() => {
-                                         const exploreTrigger = document.querySelector('button[role="tab"][value="explore"]');
-                                         exploreTrigger?.click();
-                                     }}
-                                     className="mt-4 bg-gradient-to-r from-purple-600 to-pink-600"
+                                    onClick={() => {
+                                        const exploreTrigger = document.querySelector('button[role="tab"][value="explore"]');
+                                        exploreTrigger?.click();
+                                    }}
+                                    className="mt-4 bg-gradient-to-r from-purple-600 to-pink-600"
                                 >
-                                     Explore Roadmaps
-                                 </Button>
+                                    Explore Roadmaps
+                                </Button>
                             </div>
-                         )}
+                        )}
                     </TabsContent>
                 </Tabs>
             </div>

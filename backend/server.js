@@ -49,10 +49,7 @@ console.log('Groq API URL Loaded:', process.env.GROQ_API_URL ? 'Yes' : 'No');
 connectDB();
 
 // Middleware
-app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    credentials: true
-}));
+app.use(cors());
 
 // Body parsing middleware - but NOT for multipart/form-data
 app.use((req, res, next) => {

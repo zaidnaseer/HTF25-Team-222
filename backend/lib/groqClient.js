@@ -3,14 +3,14 @@
 export async function callGroqGenerate(prompt, options = {}) {
   const apiKey = process.env.GROQ_API_KEY;
   const url = process.env.GROQ_API_URL;
-  
+
   if (!apiKey || !url) {
     throw new Error('Missing Groq config. Set GROQ_API_KEY and GROQ_API_URL in your environment (.env).');
   }
 
   // Use chat completions format (OpenAI-compatible)
   const body = {
-    // BEST FOR ROADMAPS: Fast, efficient, good JSON generation
+    // Fast & efficient model for roadmap generation
     model: options.model || "llama-3.1-8b-instant",
     
     messages: [
@@ -21,14 +21,9 @@ export async function callGroqGenerate(prompt, options = {}) {
       { role: "user", content: prompt }
     ],
     
-    // Reduced token limit for faster/cheaper generation
-    max_tokens: options.max_tokens ?? options.maxTokens ?? 1500,
-    
-    // Lower temperature for more consistent JSON output
+    // Optimized settings for roadmap generation
+    max_tokens: options.max_tokens ?? options.maxTokens ?? 1800,
     temperature: options.temperature ?? 0.5,
-    
-    // Optional: Add JSON mode if supported
-    response_format: { type: "json_object" }
   };
 
   const res = await fetch(url, {

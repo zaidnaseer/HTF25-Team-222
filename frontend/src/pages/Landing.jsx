@@ -51,7 +51,7 @@ export default function Landing() {
                             <span className="text-sm font-medium">Welcome to the Future of Learning</span>
                         </div>
 
-                        <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-primary via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                        <h1 className="text-5xl pb-2 md:text-7xl font-bold mb-6 bg-gradient-to-r from-primary via-purple-600 to-pink-600 bg-clip-text text-transparent">
                             Learn Together, Grow Together
                         </h1>
 

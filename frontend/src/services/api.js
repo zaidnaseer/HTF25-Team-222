@@ -65,7 +65,6 @@ export const learnerHubAPI = {
     }),
     getResources: (hubId) => api.get(`/hubs/${hubId}/resources`),
     deleteResource: (hubId, resourceId) => api.delete(`/hubs/${hubId}/resources/${resourceId}`),
-    // Added from HEAD (develop branch) as it was missing in origin/main
     getHubMembers: (id) => api.get(`/hubs/${id}/members`),
 };
 
@@ -132,9 +131,8 @@ export const roadmapAPI = {
     adoptRoadmap: (id, data) => api.post(`/roadmaps/${id}/adopt`, data),
     updateProgress: (id, data) => api.put(`/roadmaps/${id}/progress`, data),
 
-    // --- ADDED FUNCTION for AI Generation ---
     generateRoadmap: (data) => api.post('/roadmaps/generate', data),
-    // ------------------------------------
+    getHubRoadmaps: (hubId) => api.get(`/hubs/${hubId}/roadmaps`),
 };
 
 // --- Activity API Functions ---

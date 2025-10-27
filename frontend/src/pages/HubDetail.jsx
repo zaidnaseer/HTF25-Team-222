@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { learnerHubAPI, messageAPI, activityAPI, getResourceUrl } from '../services/api';
+import { learnerHubAPI, messageAPI, activityAPI, getResourceUrl, roadmapAPI } from '../services/api'; 
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -11,7 +11,7 @@ import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Label } from '../components/ui/label';
-import { Users, MessageSquare, Trophy, Calendar, Send, FileText, Plus, Trash2, LogOut, UserCheck, UserX } from 'lucide-react';
+import { Users, MessageSquare, Trophy, Calendar, Send, FileText, Plus, Trash2, LogOut, UserCheck, UserX, GitBranch } from 'lucide-react';
 import { getInitials, formatDate } from '../lib/utils';
 
 // Default cover images for learner hubs
@@ -41,6 +41,8 @@ export default function HubDetail() {
     const [hub, setHub] = useState(null);
     const [messages, setMessages] = useState([]);
     const [activities, setActivities] = useState([]);
+    // NEW: State for roadmaps
+    const [roadmaps, setRoadmaps] = useState([]); 
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
     const [isMember, setIsMember] = useState(false);
@@ -74,6 +76,8 @@ export default function HubDetail() {
     useEffect(() => {
         loadHub();
         loadActivities();
+        // NEW: Load roadmaps
+        loadRoadmaps(); 
     }, [id]);
 
     const loadHub = async () => {
@@ -113,6 +117,23 @@ export default function HubDetail() {
             setActivities(response.data);
         } catch (error) {
             console.error('Failed to load activities:', error);
+        }
+    };
+
+    // NEW: Function to load adopted roadmaps for the hub
+    const loadRoadmaps = async () => {
+        try {
+            // ASSUMPTION: You have an API endpoint to get roadmaps adopted by hub members
+            const response = await roadmapAPI.getHubRoadmaps(id);
+            setRoadmaps(response.data);
+        } catch (error) {
+            console.error('Failed to load roadmaps:', error);
+            // You can add fallback data here for testing if your API isn't ready
+            // Example:
+            // setRoadmaps([
+            //     { _id: 'r1', title: 'React Developer Roadmap', description: 'Learn React from scratch.', adopters: [{ user: { _id: 'u1', name: 'Alice', avatar: '' } }, { user: { _id: 'u2', name: 'Bob', avatar: '' } }] },
+            //     { _id: 'r2', title: 'Node.js Mastery', description: 'Backend with Node.js.', adopters: [{ user: { _id: 'u3', name: 'Charlie', avatar: '' } }] }
+            // ]);
         }
     };
 
@@ -517,10 +538,13 @@ export default function HubDetail() {
             </div>
 
             <Tabs defaultValue="chat" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-4">
+                {/* CHANGED: Updated grid-cols-4 to grid-cols-5 */}
+                <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="chat"><MessageSquare className="mr-2 h-4 w-4" />Chat</TabsTrigger>
                     <TabsTrigger value="members"><Users className="mr-2 h-4 w-4" />Members</TabsTrigger>
                     <TabsTrigger value="activities"><Trophy className="mr-2 h-4 w-4" />Activities</TabsTrigger>
+                    {/* NEW: Added Roadmaps tab trigger */}
+                    <TabsTrigger value="roadmaps"><GitBranch className="mr-2 h-4 w-4" />Roadmaps</TabsTrigger>
                     <TabsTrigger value="resources"><FileText className="mr-2 h-4 w-4" />Resources</TabsTrigger>
                 </TabsList>
 
@@ -943,6 +967,66 @@ export default function HubDetail() {
                             </Card>
                         )}
                     </div>
+                </TabsContent>
+
+                {/* NEW: TabsContent for Roadmaps */}
+                <TabsContent value="roadmaps">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Adopted Roadmaps</CardTitle>
+                            <CardDescription>
+                                Learning paths adopted by members of this hub.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {roadmaps.length > 0 ? (
+                                    roadmaps.map((roadmap) => (
+                                        <Card key={roadmap._id}>
+                                            <CardHeader>
+                                                <CardTitle>{roadmap.title}</CardTitle>
+                                                <CardDescription>{roadmap.description}</CardDescription>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="flex justify-between items-center">
+                                                    {/* Show adopters */}
+                                                    <div>
+                                                        <Label className="text-xs text-muted-foreground">Adopted By:</Label>
+                                                        <div className="flex -space-x-2 mt-1">
+                                                            {roadmap.adopters.map((adopter) => (
+                                                                <Avatar key={adopter.user._id} className="border-2 border-background">
+                                                                    <AvatarImage src={adopter.user.avatar} />
+                                                                    <AvatarFallback>{getInitials(adopter.user.name)}</AvatarFallback>
+                                                                </Avatar>
+                                                            ))}
+                                                            {/* You could add a "+X more" badge here if the list is long */}
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {/* Link to the roadmap */}
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm"
+                                                        onClick={() => navigate(`/roadmaps/${roadmap._id}`)} // Assumed route
+                                                    >
+                                                        View Roadmap
+                                                    </Button>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-16">
+                                        <GitBranch className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                                        <p className="text-lg mb-2">No roadmaps adopted yet</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            When members adopt roadmaps, they will appear here.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
                 </TabsContent>
 
                 <TabsContent value="resources">

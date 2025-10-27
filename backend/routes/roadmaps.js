@@ -5,7 +5,6 @@ import { callGroqGenerate } from '../lib/groqClient.js';
 
 const router = express.Router();
 
-// --- EXISTING ROUTES ---
 
 // @route   GET /api/roadmaps
 // @desc    Get roadmaps (templates and custom)
@@ -110,7 +109,6 @@ router.post('/', protect, async (req, res) => {
     try {
         const { title, description, category, difficulty, estimatedDuration, tags, milestones, isTrainerRoadmap } = req.body;
 
-        // Basic Validation
         if (!title || !category || !milestones || milestones.length === 0) {
             return res.status(400).json({ message: 'Title, category, and at least one milestone are required.' });
         }
@@ -156,20 +154,27 @@ router.post('/', protect, async (req, res) => {
     }
 });
 
-// --- NEW ROUTE: Generate Roadmap using AI (Groq) ---
 router.post('/generate', protect, async (req, res) => {
-    const { topic, goal, difficulty, duration } = req.body;
+    const { topic, additionalInfo, difficulty, duration } = req.body; // Changed 'goal' to 'additionalInfo', added 'duration'
     const userId = req.user._id;
 
     if (!topic) {
         return res.status(400).json({ message: 'Topic is required for AI generation' });
     }
 
+    // Build duration context for the prompt
+    let durationContext = '';
+    if (duration) {
+        durationContext = `The learner wants to complete this roadmap in approximately: ${duration}.`;
+    } else {
+        durationContext = 'The timeframe is flexible.';
+    }
+
     const prompt = `Generate a comprehensive learning roadmap about "${topic}".
 
-Main goal: "${goal || 'Become proficient'}"
+${additionalInfo ? `Additional context: "${additionalInfo}"` : ''}
 Target difficulty: ${difficulty || 'Beginner'}
-Desired duration: ${duration || 'Flexible'}
+${durationContext}
 
 You must respond with ONLY a valid JSON object (no markdown code blocks, no explanations, no extra text) matching this exact structure:
 
@@ -178,7 +183,7 @@ You must respond with ONLY a valid JSON object (no markdown code blocks, no expl
   "description": "Short description (2-3 sentences)",
   "category": "ONE category from: Web Development, Mobile Development, Data Science, AI/ML, DevOps, Cloud Computing, Cybersecurity, Blockchain, Game Development, UI/UX Design, Backend Development, Frontend Development, Full Stack Development, Database Management, Programming Fundamentals",
   "difficulty": "beginner, intermediate, or advanced",
-  "estimatedDuration": "realistic duration like '3 months', '8 weeks', '6 months'",
+  "estimatedDuration": "realistic duration based on the provided timeframe like '3 months', '8 weeks', '6 months'",
   "tags": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
   "milestones": [
     {
@@ -193,52 +198,50 @@ You must respond with ONLY a valid JSON object (no markdown code blocks, no expl
 }
 
 Requirements:
-- Provide 4-6 milestones that progress logically
-- Each milestone should have 3-5 tasks
+- Provide milestones that progress logically
+- Each milestone should have some tasks
 - Tasks should be specific, actionable, and ordered by complexity
+- If a duration was provided, adjust the pacing and depth accordingly
 - Descriptions should be clear and educational
 - Output ONLY the JSON object, nothing else`;
 
     console.log(`[AI Roadmap] Generating for topic: "${topic}" by user ${userId}`);
 
     try {
-        // Call Groq API
         const aiResponseContent = await callGroqGenerate(prompt, {
-            max_tokens: 2500,
-            temperature: 0.7,
+            model: "llama-3.1-8b-instant", // Fast & efficient
+            max_tokens: 1800,
+            temperature: 0.5,
         });
 
         let roadmapData;
         try {
-            // Clean response - remove markdown code blocks if present
             let cleanedResponse = aiResponseContent.trim();
-            
             if (cleanedResponse.startsWith('```json')) {
                 cleanedResponse = cleanedResponse.replace(/```json\n?/g, '').replace(/```\n?$/g, '');
             } else if (cleanedResponse.startsWith('```')) {
                 cleanedResponse = cleanedResponse.replace(/```\n?/g, '').replace(/```\n?$/g, '');
             }
-            
+
             roadmapData = JSON.parse(cleanedResponse);
 
-            // Validate structure
             if (!roadmapData.title || !roadmapData.milestones || !Array.isArray(roadmapData.milestones) || roadmapData.milestones.length === 0) {
                 throw new Error("AI response missing required fields or milestones.");
             }
-            
+
             if (roadmapData.milestones.some(m => !m.title || !m.tasks || !Array.isArray(m.tasks) || m.tasks.length === 0 || m.tasks.some(t => !t.title))) {
                 throw new Error("AI response has invalid milestone or task structure.");
             }
         } catch (parseError) {
             console.error("[AI Roadmap] Failed to parse JSON response:", aiResponseContent, parseError);
-            return res.status(500).json({ 
+            return res.status(500).json({
                 message: 'AI generated invalid data. Please try refining your topic.',
                 details: process.env.NODE_ENV === 'development' ? aiResponseContent : undefined
             });
         }
 
-        // Create and save roadmap
-        const newRoadmap = new Roadmap({
+        // First, create the AI roadmap as a template
+        const templateRoadmap = new Roadmap({
             title: roadmapData.title,
             description: roadmapData.description,
             category: roadmapData.category,
@@ -259,31 +262,68 @@ Requirements:
             })),
             createdBy: userId,
             type: 'custom',
-            isTemplate: false,
-            adoptedBy: [{ user: userId, progress: [] }],
-            usedBy: 1,
+            isTemplate: true, // Mark as template so it can be adopted
+            adoptedBy: [],
+            usedBy: 0,
             isApproved: false
         });
 
-        const savedRoadmap = await newRoadmap.save();
-        console.log(`[AI Roadmap] Saved roadmap ${savedRoadmap._id} for topic "${topic}"`);
-        res.status(201).json(savedRoadmap);
+        const savedTemplate = await templateRoadmap.save();
+        console.log(`[AI Roadmap] Created template ${savedTemplate._id} for topic "${topic}"`);
+
+        // Then, automatically adopt it for the user
+        const adoptedRoadmap = new Roadmap({
+            title: savedTemplate.title,
+            description: savedTemplate.description,
+            category: savedTemplate.category,
+            difficulty: savedTemplate.difficulty,
+            estimatedDuration: savedTemplate.estimatedDuration,
+            tags: savedTemplate.tags,
+            thumbnail: savedTemplate.thumbnail,
+            milestones: savedTemplate.milestones.map((m, index) => ({
+                title: m.title,
+                description: m.description,
+                order: m.order || index + 1,
+                tasks: m.tasks.map(t => ({
+                    title: t.title,
+                    description: t.description,
+                    resources: t.resources || [],
+                    completed: false,
+                })),
+                completed: false,
+            })),
+            createdBy: userId,
+            adoptedFrom: savedTemplate._id, // Reference to the template
+            type: 'custom',
+            isTemplate: false,
+            adoptedBy: [{ user: userId, progress: [] }],
+            usedBy: 1,
+            isApproved: false,
+        });
+
+        const savedAdoptedRoadmap = await adoptedRoadmap.save();
+
+        // Update the template's adopted count
+        savedTemplate.adoptedBy.push({ user: userId });
+        savedTemplate.usedBy = 1;
+        await savedTemplate.save();
+
+        console.log(`[AI Roadmap] User ${userId} adopted roadmap ${savedAdoptedRoadmap._id} from template ${savedTemplate._id}`);
+        res.status(201).json(savedAdoptedRoadmap);
 
     } catch (error) {
         console.error('[AI Roadmap] Error during generation:', error);
-        
-        // Handle Groq-specific errors
+
         if (error.status) {
-            return res.status(error.status).json({ 
+            return res.status(error.status).json({
                 message: `AI Service Error: ${error.message}`,
                 details: process.env.NODE_ENV === 'development' ? error.details : undefined
             });
         }
-        
+
         res.status(500).json({ message: 'Server error during AI roadmap generation.' });
     }
 });
-// --- End NEW AI ROUTE ---
 
 // @route   POST /api/roadmaps/:id/adopt
 // @desc    Adopt a roadmap template (create a user copy)
@@ -291,7 +331,7 @@ Requirements:
 router.post('/:id/adopt', protect, async (req, res) => {
     try {
         const templateRoadmap = await Roadmap.findOne({ _id: req.params.id, isTemplate: true });
-        
+
         if (!templateRoadmap) {
             return res.status(404).json({ message: 'Roadmap template not found or cannot be adopted' });
         }
